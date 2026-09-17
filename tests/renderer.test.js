@@ -7,7 +7,7 @@ function boot(){
  vm.runInNewContext(fs.readFileSync('plugin/code.js','utf8'),{figma,__html__:'',console,Date,Math,JSON,setInterval:()=>1,clearInterval(){},fetch:async()=>{throw Error('offline')}});
  return {page,figma,node,messages,breakRender(){fail=true}};
 }
-test('build both languages with total-minute cracktro timer and rollback failed rebuild',async()=>{
+test('build both languages with glitched RGB cracktro timer and rollback failed rebuild',async()=>{
  assert.ok(fs.existsSync('plugin/code.js'),'built plugin is required');
  const h=boot();const user=h.node('FRAME');h.page.appendChild(user);
  await h.figma.ui.onmessage({type:'build',locale:'both'});
@@ -19,6 +19,12 @@ test('build both languages with total-minute cracktro timer and rollback failed 
  assert.ok(texts.includes('leave something before we go.'));
  assert.ok(texts.includes('가기 전에 뭐라도 남기자.'));
  assert.ok(texts.includes('min'));
+ const home=frames.find(n=>n.name==='[OFH] home / EN');
+ const timer=home.children.find(n=>n.name==='Live pixel countdown');
+ assert.ok(timer,'home timer exists');
+ const timerColors=new Set(timer.children.map(n=>JSON.stringify(n.fills?.[0]?.color)));
+ assert.ok(timerColors.size>=3,'cracktro timer renders blue/yellow/red layers');
+ assert.ok(home.children.some(n=>n.type==='TEXT'&&n.characters==='NO SCORE // NO LIKES // NO WARRANTY // STILL HUMAN'));
  const old=[...h.page.children];h.breakRender();
  await h.figma.ui.onmessage({type:'build',locale:'en'});
  assert.deepEqual(h.page.children,old);
