@@ -1,0 +1,131 @@
+{
+  "key": "detail",
+  "width": 1440,
+  "height": 1040,
+  "nodes": [
+    {
+      "type": "text",
+      "x": 32,
+      "y": 20,
+      "width": 600,
+      "height": 34,
+      "size": 25,
+      "color": "text",
+      "text": "Only for Human"
+    },
+    {
+      "type": "text",
+      "x": 1080,
+      "y": 27,
+      "width": 110,
+      "height": 25,
+      "size": 14,
+      "color": "text",
+      "key": "saved"
+    },
+    {
+      "type": "text",
+      "x": 1210,
+      "y": 27,
+      "width": 60,
+      "height": 25,
+      "size": 14,
+      "color": "text",
+      "key": "you"
+    },
+    {
+      "type": "text",
+      "x": 1300,
+      "y": 27,
+      "width": 120,
+      "height": 25,
+      "size": 14,
+      "color": "text",
+      "text": "EN / 한국어"
+    },
+    {
+      "type": "rect",
+      "x": 32,
+      "y": 66,
+      "width": 1376,
+      "height": 1,
+      "color": "line"
+    },
+    {
+      "type": "text",
+      "x": 32,
+      "y": 105,
+      "width": 600,
+      "height": 30,
+      "size": 14,
+      "color": "text",
+      "key": "back"
+    },
+    {
+      "type": "rect",
+      "x": 32,
+      "y": 167,
+      "width": 895,
+      "height": 780,
+      "color": "line"
+    },
+    {
+      "type": "text",
+      "x": 310,
+      "y": 535,
+      "width": 570,
+      "height": 30,
+      "size": 14,
+      "color": "muted",
+      "key": "slot"
+    },
+    {
+      "type": "text",
+      "x": 972,
+      "y": 175,
+      "width": 425,
+      "height": 100,
+      "size": 30,
+      "color": "text",
+      "key": "detailCaption"
+    },
+    {
+      "type": "text",
+      "x": 972,
+      "y": 300,
+      "width": 425,
+      "height": 30,
+      "size": 14,
+      "color": "text",
+      "key": "detailMeta"
+    },
+    {
+      "type": "text",
+      "x": 972,
+      "y": 450,
+      "width": 425,
+      "height": 30,
+      "size": 14,
+      "color": "muted",
+      "key": "report"
+    },
+    {
+      "type": "rect",
+      "x": 972,
+      "y": 360,
+      "width": 230,
+      "height": 46,
+      "color": "text"
+    },
+    {
+      "type": "text",
+      "x": 987,
+      "y": 373,
+      "width": 200,
+      "height": 25,
+      "size": 14,
+      "color": "background",
+      "key": "save"
+    }
+  ]
+}

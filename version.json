@@ -1,0 +1,17 @@
+{
+  "schemaVersion": 1,
+  "builderVersion": "1.0.0",
+  "defaultLocale": "en",
+  "locales": [
+    "en",
+    "ko"
+  ],
+  "screenOrder": [
+    "home",
+    "upload",
+    "detail",
+    "saved",
+    "profile"
+  ],
+  "updatedAt": "2026-09-17T17:51:00Z"
+}
