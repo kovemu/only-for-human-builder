@@ -12,7 +12,15 @@ function drawTimer(frame,n){
   const defaultOffsets=[0,450,720],rawOffset=(n.mode==='totalMinutes'?0:(defaultOffsets[f]||0));
   const visualWidth=Math.max(0,value.length*step-cell);
   const offset=n.align==='center'?Math.max(0,(n.width-visualWidth)/2):rawOffset;
-  value.split('').forEach((d,i)=>{const bits=PIXELS[Number(d)];for(let y=0;y<7;y++)for(let x=0;x<3;x++)if(bits[y*3+x]==='1')rectangle(holder,offset+i*step+x*cell,y*cell,square,square,color);});
+  value.split('').forEach((d,i)=>{
+   const bits=PIXELS[Number(d)],dx=n.glitch?[0,3,-2,4,-3,1][i%6]:0,dy=n.glitch?[0,-4,2,-2,3,0][i%6]:0;
+   for(let y=0;y<7;y++)for(let x=0;x<3;x++)if(bits[y*3+x]==='1'){
+    const px=offset+i*step+x*cell+dx,py=y*cell+dy;
+    if(n.shadow)rectangle(holder,px-4,py+4,square,square,'line');
+    if(n.shadow&&((i+x+y)%7===0))rectangle(holder,px+5,py-3,square,square,'warning');
+    rectangle(holder,px,py,square,square,color);
+   }
+  });
  });
  return holder;
 }
