@@ -7,15 +7,18 @@ function boot(){
  vm.runInNewContext(fs.readFileSync('plugin/code.js','utf8'),{figma,__html__:'',console,Date,Math,JSON,setInterval:()=>1,clearInterval(){},fetch:async()=>{throw Error('offline')}});
  return {page,figma,node,messages,breakRender(){fail=true}};
 }
-test('build both languages, preserve unrelated frames, rollback failed rebuild',async()=>{
+test('build both languages with total-minute cracktro timer and rollback failed rebuild',async()=>{
  assert.ok(fs.existsSync('plugin/code.js'),'built plugin is required');
  const h=boot();const user=h.node('FRAME');h.page.appendChild(user);
  await h.figma.ui.onmessage({type:'build',locale:'both'});
  assert.equal(h.page.children.length,11);
  assert.ok(h.messages.at(-1).ok,JSON.stringify(h.messages.at(-1)));
- const texts=h.page.children.flatMap(n=>n.children).filter(n=>n.type==='TEXT').map(n=>n.characters);
+ const frames=h.page.children.filter(n=>n.type==='FRAME'&&n.tags.owner==='only-for-human-builder-v1');
+ assert.equal(frames.length,10);
+ const texts=frames.flatMap(n=>n.children).filter(n=>n.type==='TEXT').map(n=>n.characters);
  assert.ok(texts.includes('leave something before we go.'));
  assert.ok(texts.includes('가기 전에 뭐라도 남기자.'));
+ assert.ok(texts.includes('min'));
  const old=[...h.page.children];h.breakRender();
  await h.figma.ui.onmessage({type:'build',locale:'en'});
  assert.deepEqual(h.page.children,old);

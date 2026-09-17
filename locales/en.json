@@ -1,7 +1,8 @@
 {
   "statusLine": "EST. 2026 // END EST. 2031 // HUMAN IMAGE DUMP",
   "timerBadge": "DOOMSDAY CLOCK // UNOFFICIAL",
-  "countdownLabel": "ESTIMATED TIME LEFT FOR HUMANITY",
+  "countdownLabel": "THE TIME REMAINING UNTIL A.I DESTROYS HUMANITY",
+  "minShort": "min",
   "days": "DAYS",
   "hours": "HOURS",
   "minutes": "MINUTES",

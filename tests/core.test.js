@@ -10,8 +10,13 @@ test('shared deadline, minute rounding and expiry',()=>{
   assert.deepEqual(remaining(end,Date.parse(end)+1),{days:0,hours:0,minutes:0});
   assert.throws(()=>remaining('invalid',0));
 });
+test('total-minute display turns the shared countdown into one cracktro number',()=>{
+  const {countdownDisplay}=require('../lib/core');
+  const end='2031-09-17T17:51:00Z';
+  assert.deepEqual(countdownDisplay(end,Date.parse(end)-90060000,'totalMinutes'),['1501']);
+  assert.deepEqual(countdownDisplay(end,Date.parse(end)-90060000,'split'),['0001','01','01']);
+});
 test('incomplete translation and malformed screen are rejected before drawing',()=>{
-  assert.ok(fs.existsSync('lib/core.js'),'bundle validation is required');
   const {validateBundle}=require('../lib/core');
   const b={version:{schemaVersion:1,screenOrder:['home']},tokens:{background:'#fff'},countdown:{deadline:'2031-09-17T17:51:00Z'},locales:{en:{hello:'Hello'},ko:{hello:'안녕'}},screens:{home:{width:1440,height:1000,nodes:[{type:'text',x:0,y:0,width:100,height:30,key:'hello'}]}}};
   assert.equal(validateBundle(b),b);
