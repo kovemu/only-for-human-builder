@@ -2,23 +2,37 @@
 *{box-sizing:border-box}body{font:13px system-ui;margin:18px;background:#f1f0e9;color:#24241f}h1{font: bold 21px monospace;margin:0 0 8px}p{font-size:12px;line-height:1.5;color:#666}button,select{font:inherit;width:100%;padding:10px;margin:5px 0;border:1px solid #24241f;border-radius:0;background:transparent;color:inherit}button{cursor:pointer}button.primary{background:#24241f;color:#f1f0e9}button:disabled{opacity:.4;cursor:wait}#status{font-size:12px;line-height:1.5;margin-top:12px;overflow-wrap:anywhere}
 </style><h1>Only for Human</h1><p>GitHub → JSON → Figma<br>English default / 한국어 지원</p>
 <label for="locale">생성 언어</label><select id="locale"><option value="en">English</option><option value="ko">한국어</option><option value="both">English + 한국어</option></select>
-<button id="sync">GitHub 최신 버전 불러오기</button><button id="build" class="primary">불러온 버전으로 전체 화면 다시 생성</button><button id="offline">설치본 데이터로 돌아가기</button><div id="status" role="status">설치본 1.0.0 준비됨 · 이미지 자리는 시안용입니다.</div>
+<button id="sync">GitHub 최신 버전 불러오기</button><button id="build" class="primary">불러온 버전으로 전체 화면 다시 생성</button><button id="offline">설치본 데이터로 돌아가기</button><div id="status" role="status">설치본 1.0.1 준비됨 · 이미지 자리는 시안용입니다.</div>
 <script>
 const REPO='kovemu/only-for-human-builder';
 const state=document.getElementById('status');
 function lock(on){document.querySelectorAll('button,select').forEach(n=>n.disabled=on)}
-function send(type,extra={}){parent.postMessage({pluginMessage:{type,...extra}},'*')}
-async function get(url){const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),15000);try{const r=await fetch(url,{signal:controller.signal,cache:'no-store'});if(!r.ok)throw Error('GitHub HTTP '+r.status);return await r.json()}finally{clearTimeout(timer)}}
+let acknowledgementTimer;
+function send(type,extra={}){
+ clearTimeout(acknowledgementTimer);
+ acknowledgementTimer=setTimeout(()=>{state.textContent='Figma 응답 대기 시간이 초과됐습니다. 플러그인을 닫고 다시 실행해 주세요.';lock(false)},30000);
+ parent.postMessage({pluginMessage:{type,...extra}},'*');
+}
+async function get(url){
+ const controller=new AbortController();let timer;
+ try{return await Promise.race([
+  (async()=>{const r=await fetch(url,{signal:controller.signal,cache:'no-store'});if(!r.ok)throw Error('GitHub HTTP '+r.status);return await r.json()})(),
+  new Promise((_,reject)=>{timer=setTimeout(()=>{reject(Error('네트워크 응답 시간 초과 (15초)'));controller.abort()},15000)})
+ ])}finally{clearTimeout(timer)}
+}
 document.getElementById('sync').onclick=async()=>{lock(true);state.textContent='GitHub 최신 버전 확인 중…';try{
  const commit=await get('https://api.github.com/repos/'+REPO+'/commits/main');
  if(!/^[a-f0-9]{40}$/.test(commit.sha))throw Error('Invalid commit');
  const root='https://raw.githubusercontent.com/'+REPO+'/'+commit.sha+'/';
+ state.textContent='버전 정보 불러오는 중…';
  const version=await get(root+'version.json');
  if(version.schemaVersion!==1||!Array.isArray(version.screenOrder)||version.screenOrder.length>10||version.screenOrder.some(k=>!/^[a-z-]+$/.test(k)))throw Error('Unsupported manifest');
+ state.textContent='화면·번역 데이터 불러오는 중…';
  const [tokens,countdown,en,ko,...screens]=await Promise.all(['design/tokens.json','config/countdown.json','locales/en.json','locales/ko.json',...version.screenOrder.map(k=>'screens/'+k+'.json')].map(p=>get(root+p)));
+ state.textContent='GitHub 데이터 수신 완료 · Figma 적용 응답 대기 중…';
  send('bundle',{commit:commit.sha,bundle:{version,tokens,countdown,locales:{en,ko},screens:Object.fromEntries(version.screenOrder.map((k,i)=>[k,screens[i]]))}});
  }catch(e){state.textContent='불러오기 실패: '+e.message+' · 현재 데이터는 유지됩니다.';lock(false)}};
 document.getElementById('build').onclick=()=>{lock(true);state.textContent='화면 생성 중…';send('build',{locale:document.getElementById('locale').value})};
 document.getElementById('offline').onclick=()=>send('offline');
-onmessage=e=>{if(e.source!==parent)return;const m=e.data.pluginMessage;if(m&&m.type==='status'){state.textContent=m.message;state.style.color=m.ok?'#24241f':'#b32e23';lock(false)}};
+onmessage=e=>{const m=e.data&&e.data.pluginMessage;if(m&&m.type==='status'&&typeof m.ok==='boolean'&&typeof m.message==='string'){clearTimeout(acknowledgementTimer);state.textContent=m.message;state.style.color=m.ok?'#24241f':'#b32e23';lock(false)}};
 </script></html>
