@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "builderVersion": "1.0.1",
+  "builderVersion": "1.0.2",
   "defaultLocale": "en",
   "locales": [
     "en",
@@ -13,5 +13,5 @@
     "saved",
     "profile"
   ],
-  "updatedAt": "2026-09-17T18:51:36.936566+00:00"
+  "updatedAt": "2026-09-17T19:12:00.000000+00:00"
 }
