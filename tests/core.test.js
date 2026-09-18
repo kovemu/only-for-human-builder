@@ -16,6 +16,11 @@ test('total-minute display turns the shared countdown into one cracktro number',
   assert.deepEqual(countdownDisplay(end,Date.parse(end)-90060000,'totalMinutes'),['1501']);
   assert.deepEqual(countdownDisplay(end,Date.parse(end)-90060000,'split'),['0001','01','01']);
 });
+test('total-minute snapshot carries two-digit live seconds',()=>{
+  const {countdownSnapshot}=require('../lib/core');
+  const end='2031-09-17T17:51:00Z';
+  assert.deepEqual(countdownSnapshot(end,Date.parse(end)-90500,'totalMinutes'),{fields:['1'],seconds:'31'});
+});
 test('incomplete translation and malformed screen are rejected before drawing',()=>{
   const {validateBundle}=require('../lib/core');
   const b={version:{schemaVersion:1,screenOrder:['home']},tokens:{background:'#fff'},countdown:{deadline:'2031-09-17T17:51:00Z'},locales:{en:{hello:'Hello'},ko:{hello:'안녕'}},screens:{home:{width:1440,height:1000,nodes:[{type:'text',x:0,y:0,width:100,height:30,key:'hello'}]}}};
