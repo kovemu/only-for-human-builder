@@ -1,13 +1,15 @@
 const {test}=require('node:test'),assert=require('node:assert/strict'),fs=require('node:fs'),vm=require('node:vm');
 function boot(){
- let fail=false;const page={children:[],appendChild(n){if(n.parent)n.parent.children=n.parent.children.filter(v=>v!==n);this.children.push(n);n.parent=this;}};
- function node(type){return {type,children:[],tags:{},appendChild:page.appendChild,resize(w,h){this.width=w;this.height=h},setPluginData(k,v){this.tags[k]=v},getPluginData(k){return this.tags[k]||''},remove(){if(this.parent)this.parent.children=this.parent.children.filter(v=>v!==this);this.removed=true;}};}
+ let fail=false,now=Date.parse('2026-09-18T08:00:30Z'),ticker=null,rectangleCreates=0;
+ const page={children:[],appendChild(n){if(n.parent)n.parent.children=n.parent.children.filter(v=>v!==n);this.children.push(n);n.parent=this;}};
+ function node(type){return {type,name:'',children:[],tags:{},visible:true,appendChild:page.appendChild,resize(w,h){this.width=w;this.height=h},setPluginData(k,v){this.tags[k]=v},getPluginData(k){return this.tags[k]||''},remove(){if(this.parent)this.parent.children=this.parent.children.filter(v=>v!==this);this.removed=true;}};}
  const messages=[];
- const figma={currentPage:page,createFrame:()=>node('FRAME'),createRectangle:()=>node('RECTANGLE'),createText:()=>{if(fail)throw Error('render failure');return node('TEXT')},loadFontAsync:async()=>{},showUI(){},ui:{postMessage:m=>messages.push(m)},viewport:{scrollAndZoomIntoView(){}},notify(){},on(){}};
- vm.runInNewContext(fs.readFileSync('plugin/code.js','utf8'),{figma,__html__:'',console,Date,Math,JSON,setInterval:()=>1,clearInterval(){},fetch:async()=>{throw Error('offline')}});
- return {page,figma,node,messages,breakRender(){fail=true}};
+ const figma={currentPage:page,createFrame:()=>node('FRAME'),createRectangle:()=>{rectangleCreates++;return node('RECTANGLE')},createText:()=>{if(fail)throw Error('render failure');return node('TEXT')},loadFontAsync:async()=>{},showUI(){},ui:{postMessage:m=>messages.push(m)},viewport:{scrollAndZoomIntoView(){}},notify(){},on(){}};
+ const FakeDate={parse:Date.parse,now:()=>now};
+ vm.runInNewContext(fs.readFileSync('plugin/code.js','utf8'),{figma,__html__:'',console,Date:FakeDate,Math,JSON,setInterval:fn=>{ticker=fn;return 1},clearInterval(){},fetch:async()=>{throw Error('offline')}});
+ return {page,figma,node,messages,breakRender(){fail=true},getCreates(){return rectangleCreates},tick(ms){now+=ms;ticker();}};
 }
-test('build both languages with glitched RGB cracktro timer and rollback failed rebuild',async()=>{
+test('build both languages, keep timer free of yellow glitches, and update seconds without rebuilding it',async()=>{
  assert.ok(fs.existsSync('plugin/code.js'),'built plugin is required');
  const h=boot();const user=h.node('FRAME');h.page.appendChild(user);
  await h.figma.ui.onmessage({type:'build',locale:'both'});
@@ -22,9 +24,14 @@ test('build both languages with glitched RGB cracktro timer and rollback failed 
  const home=frames.find(n=>n.name==='[OFH] home / EN');
  const timer=home.children.find(n=>n.name==='Live pixel countdown');
  assert.ok(timer,'home timer exists');
- const timerColors=new Set(timer.children.map(n=>JSON.stringify(n.fills?.[0]?.color)));
- assert.ok(timerColors.size>=3,'cracktro timer renders blue/yellow/red layers');
- assert.ok(home.children.some(n=>n.type==='TEXT'&&n.characters==='NO SCORE // NO LIKES // NO WARRANTY // STILL HUMAN'));
+ const yellow=JSON.stringify({r:1,g:242/255,b:0});
+ assert.ok(!timer.children.map(n=>JSON.stringify(n.fills?.[0]?.color)).includes(yellow),'timer has no yellow glitch pixels');
+ const created=h.getCreates(),visibility=timer.children.map(n=>n.visible).join('');
+ h.tick(1000);
+ const timerAfter=home.children.find(n=>n.name==='Live pixel countdown');
+ assert.equal(h.getCreates(),created,'seconds tick creates no rectangles');
+ assert.equal(timerAfter,timer,'seconds tick keeps the timer holder');
+ assert.notEqual(timerAfter.children.map(n=>n.visible).join(''),visibility,'seconds pixels update');
  const old=[...h.page.children];h.breakRender();
  await h.figma.ui.onmessage({type:'build',locale:'en'});
  assert.deepEqual(h.page.children,old);
