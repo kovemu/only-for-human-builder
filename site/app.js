@@ -46,11 +46,11 @@ function art(i){const l=lang(),a=samples[i];return `<a href="/detail?id=${i}" da
 function streamArt(n){
  const l=lang(),i=n%samples.length,a=samples[i],m=sampleMedia[i]||{w:280,h:360,src:''};
  const media=m.src
-  ? `<img class="art-image" src="${m.src}" width="${m.w}" height="${m.h}" alt="" loading="${n<6?'eager':'lazy'}" decoding="async" ${n<2?'fetchpriority="high"':''}>`
+  ? `<img class="art-image" src="${m.src}" width="${m.w}" height="${m.h}" alt="" loading="${n<8?'eager':'lazy'}" decoding="async" ${n<3?'fetchpriority="high"':''}>`
   : `<div class="imgbox art-placeholder" style="--native-w:${m.w}px;--native-h:${m.h}px"></div>`;
- return `<a href="/detail?id=${i}" data-nav class="artifact stream-item ${a[3]}"><div class="art-stage">${media}</div><div class="cap">&lt;${esc(a[l==='en'?0:1])}&gt;</div></a>`;
+ return `<a href="/detail?id=${i}" data-nav class="artifact stream-item ${a[3]}"><div class="artwork-card"><div class="art-stage">${media}</div><div class="cap">&lt;${esc(a[l==='en'?0:1])}&gt;</div></div></a>`;
 }
-function mobileFeedInitial(){feedCursor=7;preloadAhead(0,12);return Array.from({length:6},(_,i)=>streamArt(i+1)).join('')}
+function mobileFeedInitial(){feedCursor=8;preloadAhead(0,14);return Array.from({length:8},(_,i)=>streamArt(i)).join('')}
 function wireNav(root=document){root.querySelectorAll('[data-nav]').forEach(a=>a.onclick=e=>{e.preventDefault();nav(a.getAttribute('href'))})}
 function appendFeedBatch(){
  const box=document.querySelector('#mobileFeed');if(!box)return;
@@ -65,42 +65,21 @@ function setupInfiniteFeed(){
  feedObserver=new IntersectionObserver(entries=>{if(entries.some(e=>e.isIntersecting))appendFeedBatch()},{rootMargin:'1800px 0px'});
  feedObserver.observe(sentinel);
 }
-let pageTouchY=null,pageLock=false;
-function mobilePages(){
- return [document.querySelector('.home-intro'),...document.querySelectorAll('#mobileFeed .stream-item')].filter(Boolean);
-}
-function currentMobilePage(){
- const pages=mobilePages(),y=scrollY+innerHeight*.45;
- let best=0,bestDist=Infinity;
- pages.forEach((p,i)=>{const d=Math.abs(p.getBoundingClientRect().top+scrollY-y);if(d<bestDist){best=i;bestDist=d}});
- return best;
-}
-function goMobilePage(dir){
- if(pageLock||!matchMedia('(max-width:560px)').matches)return;
- const pages=mobilePages();if(!pages.length)return;
- const cur=currentMobilePage(),next=Math.max(0,Math.min(pages.length-1,cur+dir));
- if(next===cur)return;
- pageLock=true;
- if(next===0)scrollTo({top:0,behavior:'smooth'});
- else pages[next].scrollIntoView({behavior:'smooth',block:'start'});
- setTimeout(()=>{pageLock=false},420);
-}
+let pageLock=false;
 function setupMobilePaging(){
  if(!matchMedia('(max-width:560px)').matches)return;
- window.onwheel=e=>{
+ const feed=document.querySelector('#mobileFeed');if(!feed)return;
+ feed.onwheel=e=>{
    if(Math.abs(e.deltaY)<8||pageLock)return;
    e.preventDefault();
-   goMobilePage(e.deltaY>0?1:-1);
- };
- window.ontouchstart=e=>{pageTouchY=e.touches?.[0]?.clientY??null};
- window.ontouchend=e=>{
-   if(pageTouchY==null||pageLock)return;
-   const end=e.changedTouches?.[0]?.clientY??pageTouchY,delta=pageTouchY-end;
-   pageTouchY=null;
-   if(Math.abs(delta)>42)goMobilePage(delta>0?1:-1);
+   pageLock=true;
+   const dir=e.deltaY>0?1:-1;
+   const page=Math.round(feed.scrollTop/feed.clientHeight);
+   feed.scrollTo({top:Math.max(0,(page+dir)*feed.clientHeight),behavior:'smooth'});
+   setTimeout(()=>{pageLock=false},380);
  };
 }
-function home(){const l=lang(),t=copy[l];return frame(`<section class="home-intro"><section class="doom"><div class="doom-badge">${t.badge}</div><div class="side-pips"><i></i><i></i><i></i></div><div class="side-pips right"><i></i><i></i><i></i></div>${timerHtml()}<div class="doom-title">${t.title}</div><div class="doom-note">${t.note}<span class="mode-note">// 16-COLOR // SOUND: OFF</span></div><div class="glitch-rule"><i></i><i></i><i></i><i></i><i></i></div></section><div class="premise">${t.premise}</div><div class="cta-row"><div class="tagline">${t.tag}</div><button class="leave-btn" data-go="/upload">${t.leave}</button></div><div class="micro">// click it before this gets embarrassing</div><div class="feed-head"><b>${t.feed}</b><span class="sort">${t.sort}</span></div><div class="feed-note">${t.feedNote}</div><div class="feed-rule"></div><section class="first-artwork-mobile">${streamArt(0)}</section></section><section class="gallery desktop-gallery"><div class="col">${art(0)}${art(1)}${art(2)}</div><div class="col center-col">${art(3)}<div style="display:grid;grid-template-columns:1fr 1.1fr;gap:46px">${art(4)}${art(5)}</div></div><div class="col right-col">${art(6)}${art(7)}${art(8)}${art(9)}</div></section><section id="mobileFeed" class="mobile-feed">${mobileFeedInitial()}</section><div id="feedSentinel" class="feed-sentinel" aria-hidden="true"></div>`)}
+function home(){const l=lang(),t=copy[l];return frame(`<section class="home-intro"><section class="doom"><div class="doom-badge">${t.badge}</div><div class="side-pips"><i></i><i></i><i></i></div><div class="side-pips right"><i></i><i></i><i></i></div>${timerHtml()}<div class="doom-title">${t.title}</div><div class="doom-note">${t.note}<span class="mode-note">// 16-COLOR // SOUND: OFF</span></div><div class="glitch-rule"><i></i><i></i><i></i><i></i><i></i></div></section><div class="premise">${t.premise}</div><div class="cta-row"><div class="tagline">${t.tag}</div><button class="leave-btn" data-go="/upload">${t.leave}</button></div><div class="micro">// click it before this gets embarrassing</div><div class="feed-head"><b>${t.feed}</b><span class="sort">${t.sort}</span></div><div class="feed-note">${t.feedNote}</div><div class="feed-rule"></div></section><section class="gallery desktop-gallery"><div class="col">${art(0)}${art(1)}${art(2)}</div><div class="col center-col">${art(3)}<div style="display:grid;grid-template-columns:1fr 1.1fr;gap:46px">${art(4)}${art(5)}</div></div><div class="col right-col">${art(6)}${art(7)}${art(8)}${art(9)}</div></section><section id="mobileFeed" class="mobile-feed">${mobileFeedInitial()}</section><div id="feedSentinel" class="feed-sentinel" aria-hidden="true"></div>`)}
 function upload(){const l=lang(),t=copy[l];return frame(`<section class="subpage"><div class="kicker">${t.uploadKicker}</div><h1 class="title">${t.uploadTitle}</h1><div class="dropzone" id="drop"><div class="drop-inner"><b>${t.drop}</b><small>${t.formats}</small><input id="file" type="file" accept="image/png,image/jpeg,image/webp" hidden></div></div><div class="formrow"><label class="label">${t.caption}</label><textarea id="caption" class="field" placeholder="${l==='en'?'ex: this was lunch. i liked it.':'예: 점심이었다. 맛있었다.'}"></textarea></div><label class="check"><input id="human" type="checkbox"><span>${t.human}<br><b style="color:var(--red)">${t.warning}</b></span></label><div class="actions"><button class="plain" data-go="/">${t.cancel}</button><button class="primary" id="uploadBtn">${t.leave}</button></div></section>`)}
 function detail(){const l=lang(),t=copy[l];const id=+(new URLSearchParams(location.search).get('id')||0);const s=samples[id]||samples[0];const st=store(),saved=new Set(st.saved||[]);return frame(`<section class="subpage"><button class="plain" data-go="/">← ${l==='en'?'RETURN TO THE PILE':'다시 더미로'}</button><div class="kicker" style="margin-top:22px">${t.detail} // ITEM ${String(id+1).padStart(6,'0')}</div><div class="detail-grid"><div class="detail-image">IMAGE GOES HERE // TEMPORARY</div><div class="detail-copy"><h2>${esc(s[l==='en'?0:1])}</h2><p>@someone // 2026</p><button class="primary" id="saveBtn" data-id="${id}">${saved.has(id)?'[ SAVED ]':t.save}</button><p style="color:var(--red);margin-top:45px">${t.report}</p><p style="margin-top:70px">no score. no likes.<br>no recommendation engine.<br>kept because someone wanted to.</p></div></div></section>`)}
 function savedPage(){const l=lang(),t=copy[l],ids=store().saved||[];return frame(`<section class="subpage"><div class="kicker">PERSONAL BUNKER // LOCAL COLLECTION</div><h1 class="title">${t.savedTitle}</h1>${ids.length?`<div class="saved-grid">${ids.map(art).join('')}</div>`:`<div class="empty">${l==='en'?'nothing saved. the void remains organized.':'저장한 게 없습니다. 공허만 잘 정리돼 있습니다.'}</div>`}</section>`)}
@@ -109,5 +88,5 @@ function bind(){wireNav();document.querySelectorAll('[data-go]').forEach(b=>b.on
 let pendingImage='';function loadFile(f){if(!/^image\/(jpeg|png|webp)$/.test(f.type)){toast('JPG / PNG / WEBP only');return}const r=new FileReader();r.onload=()=>{pendingImage=r.result;const d=document.querySelector('#drop');d.style.backgroundImage=`url(${pendingImage})`;d.style.backgroundSize='cover';d.style.backgroundPosition='center';d.querySelector('.drop-inner').style.opacity='.12'};r.readAsDataURL(f)}
 function submitUpload(){const human=document.querySelector('#human');if(!pendingImage){toast(lang()==='en'?'drop an image first.':'이미지를 먼저 놓고 가세요.');return}if(!human?.checked){toast(lang()==='en'?'confirm it is human-made.':'직접 제작 확인이 필요합니다.');return}const st=store();st.uploads=st.uploads||[];st.uploads.unshift({data:pendingImage,caption:document.querySelector('#caption').value,at:Date.now()});saveStore(st);pendingImage='';nav('/profile')}
 function toast(msg){const e=document.createElement('div');e.className='toast';e.textContent=msg;document.body.appendChild(e);setTimeout(()=>e.remove(),1800)}
-function render(){clearInterval(timerId);if(feedObserver){feedObserver.disconnect();feedObserver=null}window.onwheel=null;window.ontouchstart=null;window.ontouchend=null;const p=route();document.documentElement.lang=lang();document.querySelector('#app').innerHTML=p==='/upload'?upload():p==='/saved'?savedPage():p==='/profile'?profile():p==='/detail'?detail():home();bind();if(p==='/'){startTimer();setupInfiniteFeed();setupMobilePaging()}}
+function render(){clearInterval(timerId);if(feedObserver){feedObserver.disconnect();feedObserver=null}const p=route();document.documentElement.lang=lang();document.querySelector('#app').innerHTML=p==='/upload'?upload():p==='/saved'?savedPage():p==='/profile'?profile():p==='/detail'?detail():home();bind();if(p==='/'){startTimer();setupInfiniteFeed();setupMobilePaging()}}
 render();
