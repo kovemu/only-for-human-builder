@@ -140,9 +140,13 @@ function appendFeedBatch(){
 function setupInfiniteFeed(){
  if(feedObserver){feedObserver.disconnect();feedObserver=null}
  if(!matchMedia('(max-width:560px)').matches)return;
- const sentinel=document.querySelector('#feedSentinel');if(!sentinel)return;
- feedObserver=new IntersectionObserver(entries=>{if(entries.some(e=>e.isIntersecting))appendFeedBatch()},{rootMargin:'1800px 0px'});
- feedObserver.observe(sentinel);
+ const feed=document.querySelector('#mobileFeed');if(!feed)return;
+ const maybeAppend=()=>{
+   const remaining=feed.scrollHeight-feed.scrollTop-feed.clientHeight;
+   if(remaining<feed.clientHeight*3)appendFeedBatch();
+ };
+ feed.addEventListener('scroll',maybeAppend,{passive:true});
+ maybeAppend();
 }
 let pageLock=false;
 function setupMobilePaging(){
