@@ -2,7 +2,7 @@
   "statusLine": "2026 시작 // 2031 종료 예정 // 인간 이미지 투척장",
   "timerBadge": "멸망 카운트다운 // 비공식",
   "countdownLabel": "AI가 인류를 끝장낼 때까지 대충 남은 시간",
-  "minShort": "분",
+  "minShort": "min",
   "days": "일",
   "hours": "시간",
   "minutes": "분",
