@@ -287,3 +287,122 @@ html[lang="ko"] .doom-title,html[lang="ko"] .tagline,html[lang="ko"] .premise,ht
   }
   html{scroll-snap-type:y mandatory}
 }
+
+@media(max-width:560px){
+  .page:has(.home-intro){
+    height:100dvh;
+    min-height:100dvh;
+    display:flex;
+    flex-direction:column;
+    overflow:hidden;
+    padding-bottom:0;
+  }
+
+  .page:has(.home-intro) > .topbar,
+  .page:has(.home-intro) > .rule,
+  .page:has(.home-intro) > .systemline,
+  .page:has(.home-intro) > .home-intro{
+    flex:0 0 auto;
+  }
+
+  /* fixed upper museum header/clock section */
+  .home-intro{
+    height:auto!important;
+    min-height:0!important;
+    max-height:none!important;
+    overflow:visible!important;
+    padding-bottom:0!important;
+    scroll-snap-align:none!important;
+  }
+  .home-intro .feed-head{margin-top:18px!important}
+  .home-intro .feed-rule{margin-bottom:7px!important}
+  .first-artwork-mobile{display:none!important}
+
+  /* artwork area occupies all remaining phone height and scrolls independently */
+  .mobile-feed{
+    display:block!important;
+    flex:1 1 auto;
+    min-height:0;
+    height:auto;
+    margin:0 -12px!important;
+    overflow-y:auto;
+    overflow-x:hidden;
+    overscroll-behavior-y:contain;
+    scroll-snap-type:y mandatory;
+    scroll-behavior:smooth;
+    scrollbar-width:none;
+  }
+  .mobile-feed::-webkit-scrollbar{display:none}
+
+  .mobile-feed .stream-item,
+  .mobile-feed .stream-item:first-child{
+    width:100%;
+    height:100%!important;
+    min-height:100%!important;
+    max-height:100%!important;
+    padding:12px 18px 10px!important;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    overflow:hidden;
+    scroll-snap-align:start;
+    scroll-snap-stop:always;
+  }
+
+  .mobile-feed .artwork-card{
+    width:100%;
+    height:auto;
+    max-height:100%;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    justify-content:center;
+  }
+
+  /* preserve source size; shrink only when the artwork cannot fit */
+  .mobile-feed .art-stage{
+    width:100%;
+    height:auto!important;
+    max-height:calc(100% - 42px);
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    flex:0 1 auto;
+  }
+  .mobile-feed .art-image{
+    width:auto!important;
+    height:auto!important;
+    max-width:100%!important;
+    max-height:100%!important;
+    object-fit:contain;
+  }
+  .mobile-feed .art-placeholder{
+    width:var(--native-w)!important;
+    height:var(--native-h)!important;
+    max-width:100%!important;
+    max-height:100%!important;
+    min-height:0!important;
+    flex:0 1 auto;
+  }
+
+  /* metadata immediately under the artwork, larger and easier to read */
+  .mobile-feed .cap{
+    width:min(100%,430px)!important;
+    margin:10px 0 0!important;
+    font-size:14px!important;
+    line-height:1.3!important;
+    font-weight:600;
+    text-align:center!important;
+    color:#fff;
+    flex:0 0 auto;
+  }
+  html[lang="ko"] .mobile-feed .cap{
+    font-family:"Noto Sans KR",sans-serif;
+    font-size:15px!important;
+    font-weight:600;
+  }
+
+  .feed-sentinel{display:none!important}
+  html{scroll-snap-type:none!important}
+  body{overflow:hidden}
+}
