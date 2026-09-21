@@ -4,9 +4,25 @@
   "cleanUrls": true,
   "trailingSlash": false,
   "rewrites": [
-    { "source": "/upload", "destination": "/index.html" },
-    { "source": "/detail", "destination": "/index.html" },
-    { "source": "/saved", "destination": "/index.html" },
-    { "source": "/profile", "destination": "/index.html" }
+    {
+      "source": "/exhibit/:id",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/upload",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/detail",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/saved",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/profile",
+      "destination": "/index.html"
+    }
   ]
 }
