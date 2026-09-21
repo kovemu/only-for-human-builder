@@ -258,5 +258,13 @@ function bind(){wireNav();wireExhibits();document.querySelectorAll('[data-go]').
 let pendingImage='';function loadFile(f){if(!/^image\/(jpeg|png|webp)$/.test(f.type)){toast('JPG / PNG / WEBP only');return}const r=new FileReader();r.onload=()=>{pendingImage=r.result;const d=document.querySelector('#drop');d.style.backgroundImage=`url(${pendingImage})`;d.style.backgroundSize='cover';d.style.backgroundPosition='center';d.querySelector('.drop-inner').style.opacity='.12'};r.readAsDataURL(f)}
 function submitUpload(){const human=document.querySelector('#human');if(!pendingImage){toast(lang()==='en'?'drop an image first.':'이미지를 먼저 놓고 가세요.');return}if(!human?.checked){toast(lang()==='en'?'confirm it is human-made.':'직접 제작 확인이 필요합니다.');return}const st=store();st.uploads=st.uploads||[];st.uploads.unshift({data:pendingImage,caption:document.querySelector('#caption').value,at:Date.now()});saveStore(st);pendingImage='';nav('/profile')}
 function toast(msg){const e=document.createElement('div');e.className='toast';e.textContent=msg;document.body.appendChild(e);setTimeout(()=>e.remove(),1800)}
-function render(){clearInterval(timerId);if(feedObserver){feedObserver.disconnect();feedObserver=null}const p=route();document.documentElement.lang=lang();document.querySelector('#app').innerHTML=p==='/upload'?upload():p==='/saved'?savedPage():p==='/profile'?profile():p==='/detail'?detail():home();bind();if(p==='/'){startTimer();setupInfiniteFeed();setupMobilePaging()}}
+function render(){
+ clearInterval(timerId);if(feedObserver){feedObserver.disconnect();feedObserver=null}
+ const p=route(),exhibitMatch=p.match(/^\/exhibit\/([^/]+)$/);
+ document.documentElement.lang=lang();
+ document.querySelector('#app').innerHTML=exhibitMatch?home():p==='/upload'?upload():p==='/saved'?savedPage():p==='/profile'?profile():p==='/detail'?detail():home();
+ bind();
+ if(p==='/'||exhibitMatch){startTimer();setupInfiniteFeed();setupMobilePaging()}
+ if(exhibitMatch)requestAnimationFrame(()=>openExhibit(exhibitIndex(exhibitMatch[1]),{push:false}));
+}
 render();
