@@ -159,3 +159,25 @@ html[lang="ko"] .doom-title,html[lang="ko"] .tagline,html[lang="ko"] .premise,ht
   body{overscroll-behavior-y:contain}
   .mobile-feed .stream-item:first-child{padding-top:11svh}
 }
+
+.home-intro{display:block}
+@media(max-width:560px){
+  .home-intro{
+    min-height:calc(100svh - 70px);
+    display:block;
+    position:relative;
+    padding-bottom:18px;
+  }
+  .home-intro .feed-head{
+    margin-top:104px;
+  }
+  .home-intro .feed-rule{
+    margin-bottom:0;
+  }
+  .mobile-feed{
+    margin-top:0;
+  }
+  .mobile-feed .stream-item:first-child{
+    scroll-snap-align:start;
+  }
+}
