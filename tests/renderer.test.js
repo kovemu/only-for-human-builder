@@ -37,3 +37,5 @@ test('build both languages, keep timer free of yellow glitches, and update secon
  assert.deepEqual(h.page.children,old);
  assert.equal(h.messages.at(-1).ok,false);
 });
+
+test('special min label can use marker font, tilt, and tracking without changing Korean copy',()=>{\n const home=JSON.parse(fs.readFileSync('screens/home.json','utf8'));\n const ko=JSON.parse(fs.readFileSync('locales/ko.json','utf8'));\n const min=home.nodes.find(n=>n.type==='text'&&n.key==='minShort');\n assert.equal(ko.minShort,'min');\n assert.equal(min.fontFamily,'Permanent Marker');\n assert.equal(min.rotation,-6);\n assert.equal(min.letterSpacing,-2);\n});\n
