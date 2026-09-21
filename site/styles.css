@@ -29,18 +29,18 @@ html[lang="ko"] .doom-title,html[lang="ko"] .tagline,html[lang="ko"] .premise,ht
   .navlink,.lang{font-size:10px}
   .rule{margin-top:2px}
   .systemline,.doom-badge,.doom-note,.mode-note,.glitch-rule,.premise,.micro,.feed-note,.sort,.side-pips{display:none!important}
-  .doom{min-height:184px;padding-top:3px;overflow:visible}
-  .doom-title{display:block!important;font-size:12px;line-height:1.35;margin:3px 0 0;text-align:center;letter-spacing:0;color:#fff}
+  .doom{min-height:0;padding-top:3px;overflow:visible}
+  .doom-title{display:block!important;font-size:12px;line-height:1.25;margin:5px 0 0;text-align:center;letter-spacing:0;color:#fff;white-space:nowrap}
   .timer-wrap{
-    position:relative;left:50%;width:720px;min-height:104px;
-    margin:8px 0 0 -360px;transform:scale(.44);transform-origin:top center;
+    position:relative;left:50%;width:720px;height:66px;min-height:66px;
+    margin:6px 0 0 -360px;transform:scale(.44);transform-origin:top center;
     gap:14px;
   }
   .seconds-unit{min-width:120px}
   .min-label{font-size:30px;margin-top:6px}
-  .cta-row{margin:5px 0 18px;display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:end;gap:10px;text-align:left}
-  .tagline{display:block!important;font-size:18px;line-height:1.15;margin:0;color:#fff}
-  .leave-btn{font-size:10px;min-width:126px;padding:10px 11px;border-width:3px;box-shadow:-4px 4px 0 -2px var(--red)}
+  .cta-row{margin:10px 0 14px;display:grid;grid-template-columns:1fr;gap:6px;text-align:left}
+  .tagline{display:block!important;font-size:14px;line-height:1.1;margin:0;color:#fff;white-space:nowrap}
+  .leave-btn{justify-self:end;font-size:10px;min-width:126px;padding:9px 11px;border-width:3px;box-shadow:-4px 4px 0 -2px var(--red)}
   .feed-head{font-size:11px;margin:0 0 7px}
   .feed-rule{margin:0 0 12px}
   .desktop-gallery{display:none!important}
@@ -66,5 +66,5 @@ html[lang="ko"] .doom-title,html[lang="ko"] .tagline,html[lang="ko"] .premise,ht
 
 @media(max-width:560px){
   html[lang="ko"] .doom-title{font-family:"Noto Sans KR",sans-serif;font-size:13px;font-weight:500;letter-spacing:-.03em}
-  html[lang="ko"] .tagline{font-family:"Noto Sans KR",sans-serif;font-size:19px;font-weight:500;letter-spacing:-.04em}
+  html[lang="ko"] .tagline{font-family:"Noto Sans KR",sans-serif;font-size:15px;font-weight:500;letter-spacing:-.04em}
 }
