@@ -115,3 +115,43 @@ using (bucket_id='artworks' and (storage.foldername(name))[1]=(select auth.uid()
 drop policy if exists "users delete own artwork files" on storage.objects;
 create policy "users delete own artwork files" on storage.objects for delete to authenticated
 using (bucket_id='artworks' and (storage.foldername(name))[1]=(select auth.uid())::text);
+
+
+-- Prototype exhibits used by the current front-end.
+insert into public.artworks
+  (slug, author_name, title, description, image_path, image_width, image_height, human_confirmed, status, published_at)
+values
+  ('sample-001','@human_001','half a taco // 12:41 pm','half a taco. no restoration planned.','seed/sample-001',300,390,true,'published','2026-08-16T12:41:00Z'),
+  ('sample-002','@human_002','rock I kept for 11 years','a rock kept for eleven years for reasons lost to history.','seed/sample-002',220,290,true,'published','2026-09-01T00:00:00Z'),
+  ('sample-003','@human_003','first terrible painting // age 9','first terrible painting. age nine. confidence intact.','seed/sample-003',280,210,true,'published','2026-07-04T00:00:00Z'),
+  ('sample-004','@human_004','drawing from 2004 // survived somehow','drawing from 2004. survived every cleanup somehow.','seed/sample-004',300,500,true,'published','2004-06-12T00:00:00Z'),
+  ('sample-005','@human_005','blurry moon // classic human error','blurry moon. classic human error.','seed/sample-005',250,250,true,'published','2026-08-21T00:00:00Z'),
+  ('sample-006','@human_006','forgot why I took this','forgot why this was photographed. preserved anyway.','seed/sample-006',290,220,true,'published','2026-09-13T00:00:00Z'),
+  ('sample-007','@human_007','wall near my house // no reason','wall near home. no reason.','seed/sample-007',210,300,true,'published','2026-06-02T00:00:00Z'),
+  ('sample-008','@human_008','sock with structural damage','sock with structural damage.','seed/sample-008',280,360,true,'published','2026-09-08T00:00:00Z'),
+  ('sample-009','@human_009','last dumpling // gone now','last dumpling. no longer extant.','seed/sample-009',240,180,true,'published','2026-09-10T00:00:00Z'),
+  ('sample-010','@human_010','proof that today happened','proof that today happened.','seed/sample-010',260,340,true,'published','2026-09-21T00:00:00Z')
+on conflict (slug) do update set
+  author_name=excluded.author_name,
+  title=excluded.title,
+  description=excluded.description,
+  image_path=excluded.image_path,
+  image_width=excluded.image_width,
+  image_height=excluded.image_height,
+  human_confirmed=excluded.human_confirmed,
+  status=excluded.status,
+  published_at=excluded.published_at;
+
+insert into public.visitor_notes (artwork_id, author_name, body, status, created_at)
+select a.id, x.author_name, x.body, 'visible', x.created_at::timestamptz
+from public.artworks a
+join (values
+  ('sample-001','museum visitor','this should not have survived lunch.','2026-09-20T12:11:00Z'),
+  ('sample-001','human #41','finally, a serious work about impermanence.','2026-09-20T13:22:00Z'),
+  ('sample-002','anonymous human','eleven years is long-term curation.','2026-09-19T09:10:00Z'),
+  ('sample-003','museum visitor','the line work is fearless. mostly because the artist was nine.','2026-09-18T18:43:00Z')
+) as x(slug,author_name,body,created_at) on x.slug=a.slug
+where not exists (
+  select 1 from public.visitor_notes n
+  where n.artwork_id=a.id and n.author_name=x.author_name and n.body=x.body
+);
