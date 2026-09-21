@@ -1,0 +1,8 @@
+{
+  "version": 2,
+  "cleanUrls": true,
+  "trailingSlash": false,
+  "rewrites": [
+    { "source": "/((?!styles\\.css|app\\.js).*)", "destination": "/index.html" }
+  ]
+}
