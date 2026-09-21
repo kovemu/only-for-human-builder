@@ -70,7 +70,7 @@ html[lang="ko"] .doom-title,html[lang="ko"] .tagline,html[lang="ko"] .premise,ht
   }
   .feed-head{
     font-size:11px;
-    margin:72px 0 7px;
+    margin:104px 0 7px;
   }
   .feed-rule{margin:0 0 0}
   .desktop-gallery{display:none!important}
@@ -84,8 +84,9 @@ html[lang="ko"] .doom-title,html[lang="ko"] .tagline,html[lang="ko"] .premise,ht
   .mobile-feed .stream-item{
     width:100%;
     min-width:0;
+    height:100svh;
     min-height:100svh;
-    padding:9svh 18px 11svh;
+    padding:8svh 18px 8svh;
     display:flex;
     flex-direction:column;
     justify-content:center;
@@ -94,17 +95,30 @@ html[lang="ko"] .doom-title,html[lang="ko"] .tagline,html[lang="ko"] .premise,ht
     scroll-snap-stop:always;
     transform:none!important;
   }
-  .mobile-feed .stream-item .imgbox{
-    width:min(100%,430px);
-    height:auto!important;
-    min-height:0;
-    max-height:68svh;
-    border-width:3px;
+  .mobile-feed .art-stage{
+    width:100%;
+    height:68svh;
+    display:flex;
+    align-items:center;
+    justify-content:center;
   }
-  .mobile-feed .stream-item.shape-portrait .imgbox{aspect-ratio:4/5}
-  .mobile-feed .stream-item.shape-landscape .imgbox{aspect-ratio:4/3}
-  .mobile-feed .stream-item.shape-square .imgbox{aspect-ratio:1}
-  .mobile-feed .stream-item.shape-tall .imgbox{aspect-ratio:3/4}
+  .mobile-feed .art-image{
+    display:block;
+    width:auto;
+    height:auto;
+    max-width:100%;
+    max-height:68svh;
+    object-fit:contain;
+  }
+  .mobile-feed .art-placeholder{
+    width:var(--native-w);
+    height:var(--native-h)!important;
+    max-width:100%;
+    max-height:68svh;
+    min-height:0;
+    border-width:3px;
+    flex:0 1 auto;
+  }
   .mobile-feed .artifact.red .imgbox::before{left:-9px;width:8px}
   .mobile-feed .artifact.yellow .imgbox::after{right:-6px;width:5px}
   .mobile-feed .cap{
@@ -113,7 +127,8 @@ html[lang="ko"] .doom-title,html[lang="ko"] .tagline,html[lang="ko"] .premise,ht
     line-height:1.35;
     margin-top:8px;
     white-space:normal;
-    text-align:left;
+    text-align:center;
+    flex:0 0 auto;
   }
   .feed-sentinel{
     display:block;
@@ -143,5 +158,4 @@ html[lang="ko"] .doom-title,html[lang="ko"] .tagline,html[lang="ko"] .premise,ht
   html{scroll-snap-type:y mandatory;scroll-behavior:smooth}
   body{overscroll-behavior-y:contain}
   .mobile-feed .stream-item:first-child{padding-top:11svh}
-  .mobile-feed .stream-item .imgbox{flex:0 0 auto}
 }
