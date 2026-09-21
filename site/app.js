@@ -21,15 +21,15 @@ function startTimer(){clearInterval(timerId);timerId=setInterval(()=>{const tota
 function frame(content){const l=lang(),t=copy[l];return `<div class="shell"><main class="page"><header class="topbar"><a class="brand" href="/" data-nav><span>ONLY FOR HUMAN</span></a><div class="status">${t.status}</div><a href="/saved" data-nav class="navlink">${t.saved}</a><a href="/profile" data-nav class="navlink you">${t.you}</a><button class="lang" id="langBtn">[ EN / 한국어 ]</button></header><div class="rule"></div><div class="rule r"></div><div class="rule b2"></div><div class="rule y"></div><div class="systemline">VGA MODE 13H // HUMAN BUILD // NO PATCH NOTES</div>${content}<div class="footer-rule"></div><footer class="footer">${t.footer}</footer></main></div>`}
 function art(i){const l=lang(),a=samples[i];return `<a href="/detail?id=${i}" data-nav class="artifact ${a[3]}"><div class="imgbox ${a[2]}"></div><div class="cap">${esc(a[l==='en'?0:1])}</div></a>`}
 function streamArt(n){
- const l=lang(),i=n%samples.length,a=samples[i];
- return `<a href="/detail?id=${i}" data-nav class="artifact stream-item ${a[3]}"><div class="imgbox"></div><div class="cap">${esc(a[l==='en'?0:1])}</div></a>`;
+ const l=lang(),i=n%samples.length,a=samples[i],shape=['portrait','landscape','square','tall'][i%4];
+ return `<a href="/detail?id=${i}" data-nav class="artifact stream-item ${a[3]} shape-${shape}"><div class="imgbox"></div><div class="cap">${esc(a[l==='en'?0:1])}</div></a>`;
 }
 function mobileFeedInitial(){feedCursor=8;return Array.from({length:8},(_,i)=>streamArt(i)).join('')}
 function wireNav(root=document){root.querySelectorAll('[data-nav]').forEach(a=>a.onclick=e=>{e.preventDefault();nav(a.getAttribute('href'))})}
 function appendFeedBatch(){
  const box=document.querySelector('#mobileFeed');if(!box)return;
- const html=Array.from({length:8},(_,i)=>streamArt(feedCursor+i)).join('');
- feedCursor+=8;box.insertAdjacentHTML('beforeend',html);wireNav(box);
+ const html=Array.from({length:4},(_,i)=>streamArt(feedCursor+i)).join('');
+ feedCursor+=4;box.insertAdjacentHTML('beforeend',html);wireNav(box);
 }
 function setupInfiniteFeed(){
  if(feedObserver){feedObserver.disconnect();feedObserver=null}
