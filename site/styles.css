@@ -71,24 +71,39 @@ html[lang="ko"] .doom-title,html[lang="ko"] .tagline,html[lang="ko"] .premise,ht
   .feed-head{font-size:11px;margin:0 0 7px}
   .feed-rule{margin:0 0 12px}
   .desktop-gallery{display:none!important}
-  .mobile-feed{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px 12px}
-  .mobile-feed .stream-item{min-width:0}
-  .mobile-feed .stream-item:nth-child(5n+2){transform:translateY(5px)}
-  .mobile-feed .stream-item:nth-child(7n+4){transform:translateY(-3px)}
-  .mobile-feed .stream-item.wide{transform:none}
-  .mobile-feed .stream-item.wide{grid-column:1/-1}
-  .mobile-feed .stream-item .imgbox{height:205px!important;min-height:0;border-width:3px}
-  .mobile-feed .stream-item.wide .imgbox{height:350px!important}
+  .mobile-feed{
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    gap:28px;
+  }
+  .mobile-feed .stream-item{
+    width:100%;
+    min-width:0;
+    max-width:430px;
+    transform:none!important;
+  }
+  .mobile-feed .stream-item .imgbox{
+    width:100%;
+    height:auto!important;
+    min-height:0;
+    aspect-ratio:4/5;
+    border-width:3px;
+  }
   .mobile-feed .artifact.red .imgbox::before{left:-9px;width:8px}
   .mobile-feed .artifact.yellow .imgbox::after{right:-6px;width:5px}
-  .mobile-feed .cap{font-size:10px;line-height:1.3;margin-top:6px;white-space:normal}
+  .mobile-feed .cap{
+    font-size:11px;
+    line-height:1.35;
+    margin-top:7px;
+    white-space:normal;
+    text-align:left;
+  }
   .feed-sentinel{display:block;height:2px;margin:40px 0}
   .footer-rule,.footer{display:none}
 }
 @media(max-width:380px){
   .timer-wrap{transform:scale(.40)}
-  .mobile-feed .stream-item .imgbox{height:185px!important}
-  .mobile-feed .stream-item.wide .imgbox{height:315px!important}
 }
 
 @media(max-width:560px){
