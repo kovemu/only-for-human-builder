@@ -68,38 +68,59 @@ html[lang="ko"] .doom-title,html[lang="ko"] .tagline,html[lang="ko"] .premise,ht
     border-width:3px;
     box-shadow:-4px 4px 0 -2px var(--red)
   }
-  .feed-head{font-size:11px;margin:0 0 7px}
-  .feed-rule{margin:0 0 12px}
+  .feed-head{
+    font-size:11px;
+    margin:72px 0 7px;
+  }
+  .feed-rule{margin:0 0 0}
   .desktop-gallery{display:none!important}
   .mobile-feed{
     display:flex;
     flex-direction:column;
-    align-items:center;
-    gap:28px;
+    align-items:stretch;
+    gap:0;
+    margin:0 -12px;
   }
   .mobile-feed .stream-item{
     width:100%;
     min-width:0;
-    max-width:430px;
+    min-height:100svh;
+    padding:9svh 18px 11svh;
+    display:flex;
+    flex-direction:column;
+    justify-content:center;
+    align-items:center;
+    scroll-snap-align:start;
+    scroll-snap-stop:always;
     transform:none!important;
   }
   .mobile-feed .stream-item .imgbox{
-    width:100%;
+    width:min(100%,430px);
     height:auto!important;
     min-height:0;
-    aspect-ratio:4/5;
+    max-height:68svh;
     border-width:3px;
   }
+  .mobile-feed .stream-item.shape-portrait .imgbox{aspect-ratio:4/5}
+  .mobile-feed .stream-item.shape-landscape .imgbox{aspect-ratio:4/3}
+  .mobile-feed .stream-item.shape-square .imgbox{aspect-ratio:1}
+  .mobile-feed .stream-item.shape-tall .imgbox{aspect-ratio:3/4}
   .mobile-feed .artifact.red .imgbox::before{left:-9px;width:8px}
   .mobile-feed .artifact.yellow .imgbox::after{right:-6px;width:5px}
   .mobile-feed .cap{
+    width:min(100%,430px);
     font-size:11px;
     line-height:1.35;
-    margin-top:7px;
+    margin-top:8px;
     white-space:normal;
     text-align:left;
   }
-  .feed-sentinel{display:block;height:2px;margin:40px 0}
+  .feed-sentinel{
+    display:block;
+    height:2px;
+    margin:0;
+    scroll-snap-align:none;
+  }
   .footer-rule,.footer{display:none}
 }
 @media(max-width:380px){
@@ -116,4 +137,11 @@ html[lang="ko"] .doom-title,html[lang="ko"] .tagline,html[lang="ko"] .premise,ht
   .tagline{font-size:11px}
   .leave-btn{min-width:91px;font-size:8px;padding:8px 6px}
   .doom-title{font-size:10px;padding-left:18px;padding-right:18px}
+}
+
+@media(max-width:560px){
+  html{scroll-snap-type:y mandatory;scroll-behavior:smooth}
+  body{overscroll-behavior-y:contain}
+  .mobile-feed .stream-item:first-child{padding-top:11svh}
+  .mobile-feed .stream-item .imgbox{flex:0 0 auto}
 }
