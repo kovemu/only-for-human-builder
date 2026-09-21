@@ -28,8 +28,9 @@ html[lang="ko"] .doom-title,html[lang="ko"] .tagline,html[lang="ko"] .premise,ht
   .topbar .status,.topbar .you{display:none}
   .navlink,.lang{font-size:10px}
   .rule{margin-top:2px}
-  .systemline,.doom-badge,.doom-title,.doom-note,.mode-note,.glitch-rule,.premise,.tagline,.micro,.feed-note,.sort,.side-pips{display:none!important}
-  .doom{min-height:150px;padding-top:3px;overflow:visible}
+  .systemline,.doom-badge,.doom-note,.mode-note,.glitch-rule,.premise,.micro,.feed-note,.sort,.side-pips{display:none!important}
+  .doom{min-height:184px;padding-top:3px;overflow:visible}
+  .doom-title{display:block!important;font-size:12px;line-height:1.35;margin:3px 0 0;text-align:center;letter-spacing:0;color:#fff}
   .timer-wrap{
     position:relative;left:50%;width:720px;min-height:104px;
     margin:8px 0 0 -360px;transform:scale(.44);transform-origin:top center;
@@ -37,13 +38,17 @@ html[lang="ko"] .doom-title,html[lang="ko"] .tagline,html[lang="ko"] .premise,ht
   }
   .seconds-unit{min-width:120px}
   .min-label{font-size:30px;margin-top:6px}
-  .cta-row{margin:2px 0 18px;display:block;text-align:right}
-  .leave-btn{font-size:10px;min-width:138px;padding:10px 12px;border-width:3px;box-shadow:-4px 4px 0 -2px var(--red)}
+  .cta-row{margin:5px 0 18px;display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:end;gap:10px;text-align:left}
+  .tagline{display:block!important;font-size:18px;line-height:1.15;margin:0;color:#fff}
+  .leave-btn{font-size:10px;min-width:126px;padding:10px 11px;border-width:3px;box-shadow:-4px 4px 0 -2px var(--red)}
   .feed-head{font-size:11px;margin:0 0 7px}
   .feed-rule{margin:0 0 12px}
   .desktop-gallery{display:none!important}
-  .mobile-feed{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px 12px}
+  .mobile-feed{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px 12px}
   .mobile-feed .stream-item{min-width:0}
+  .mobile-feed .stream-item:nth-child(5n+2){transform:translateY(5px)}
+  .mobile-feed .stream-item:nth-child(7n+4){transform:translateY(-3px)}
+  .mobile-feed .stream-item.wide{transform:none}
   .mobile-feed .stream-item.wide{grid-column:1/-1}
   .mobile-feed .stream-item .imgbox{height:205px!important;min-height:0;border-width:3px}
   .mobile-feed .stream-item.wide .imgbox{height:350px!important}
@@ -57,4 +62,9 @@ html[lang="ko"] .doom-title,html[lang="ko"] .tagline,html[lang="ko"] .premise,ht
   .timer-wrap{transform:scale(.40)}
   .mobile-feed .stream-item .imgbox{height:185px!important}
   .mobile-feed .stream-item.wide .imgbox{height:315px!important}
+}
+
+@media(max-width:560px){
+  html[lang="ko"] .doom-title{font-family:"Noto Sans KR",sans-serif;font-size:13px;font-weight:500;letter-spacing:-.03em}
+  html[lang="ko"] .tagline{font-family:"Noto Sans KR",sans-serif;font-size:19px;font-weight:500;letter-spacing:-.04em}
 }
