@@ -3,6 +3,9 @@ const DEADLINE = new Date('2031-09-17T17:51:00Z').getTime();
 const K = 'ofh-v1';
 const SUPABASE_READY = Boolean(SUPABASE_URL && SUPABASE_PUBLISHABLE_KEY);
 const EXHIBIT_PREFIX = 'sample-';
+const MAX_SOURCE_BYTES = 10 * 1024 * 1024;
+const MAX_LONG_EDGE = 1920;
+const TARGET_UPLOAD_BYTES = 900 * 1024;
 const seedNotes = {
   0: [
     {author_name:'museum visitor',body:'this should not have survived lunch.',created_at:'2026-09-20T12:11:00Z'},
@@ -250,13 +253,137 @@ function openExhibit(i,{push=true}={}){
  if(push)history.pushState({exhibit:i},'',exhibitPath(i));
  bindExhibitModal(i);refreshNotes(i);
 }
-function upload(){const l=lang(),t=copy[l];return frame(`<section class="subpage"><div class="kicker">${t.uploadKicker}</div><h1 class="title">${t.uploadTitle}</h1><div class="dropzone" id="drop"><div class="drop-inner"><b>${t.drop}</b><small>${t.formats}</small><input id="file" type="file" accept="image/png,image/jpeg,image/webp" hidden></div></div><div class="formrow"><label class="label">${t.caption}</label><textarea id="caption" class="field" placeholder="${l==='en'?'ex: this was lunch. i liked it.':'예: 점심이었다. 맛있었다.'}"></textarea></div><label class="check"><input id="human" type="checkbox"><span>${t.human}<br><b style="color:var(--red)">${t.warning}</b></span></label><div class="actions"><button class="plain" data-go="/">${t.cancel}</button><button class="primary" id="uploadBtn">${t.leave}</button></div></section>`)}
+function upload(){const l=lang(),t=copy[l];return frame(`<section class="subpage"><div class="kicker">${t.uploadKicker}</div><h1 class="title">${t.uploadTitle}</h1><div class="dropzone" id="drop"><input id="file" type="file" accept="image/png,image/jpeg,image/webp" hidden><div class="drop-inner" id="dropContent"><b>${t.drop}</b><small>${t.formats}</small><small class="opt-hint">${l==='en'?'preview = what the feed gets // auto WebP compression':'미리보기 = 실제 피드 이미지 // WebP 자동 압축'}</small></div></div><div class="formrow"><label class="label">${t.caption}</label><textarea id="caption" class="field" placeholder="${l==='en'?'ex: this was lunch. i liked it.':'예: 점심이었다. 맛있었다.'}"></textarea></div><label class="check"><input id="human" type="checkbox"><span>${t.human}<br><b style="color:var(--red)">${t.warning}</b></span></label><div class="actions"><button class="plain" data-go="/">${t.cancel}</button><button class="primary" id="uploadBtn">${t.leave}</button></div></section>`)}
 function detail(){const l=lang(),t=copy[l];const id=+(new URLSearchParams(location.search).get('id')||0);const s=samples[id]||samples[0];const st=store(),saved=new Set(st.saved||[]);return frame(`<section class="subpage"><button class="plain" data-go="/">← ${l==='en'?'RETURN TO THE PILE':'다시 더미로'}</button><div class="kicker" style="margin-top:22px">${t.detail} // ITEM ${String(id+1).padStart(6,'0')}</div><div class="detail-grid"><div class="detail-image">IMAGE GOES HERE // TEMPORARY</div><div class="detail-copy"><h2>${esc(s[l==='en'?0:1])}</h2><p>@someone // 2026</p><button class="primary" id="saveBtn" data-id="${id}">${saved.has(id)?'[ SAVED ]':t.save}</button><p style="color:var(--red);margin-top:45px">${t.report}</p><p style="margin-top:70px">no score. no likes.<br>no recommendation engine.<br>kept because someone wanted to.</p></div></div></section>`)}
 function savedPage(){const l=lang(),t=copy[l],ids=store().saved||[];return frame(`<section class="subpage"><div class="kicker">PERSONAL BUNKER // LOCAL COLLECTION</div><h1 class="title">${t.savedTitle}</h1>${ids.length?`<div class="saved-grid">${ids.map(art).join('')}</div>`:`<div class="empty">${l==='en'?'nothing saved. the void remains organized.':'저장한 게 없습니다. 공허만 잘 정리돼 있습니다.'}</div>`}</section>`)}
 function profile(){const l=lang(),t=copy[l],uploads=store().uploads||[];return frame(`<section class="subpage"><div class="kicker">${t.profile}</div><h1 class="title" style="margin-bottom:8px">@someone</h1><div style="color:#777;font-size:12px">${t.bio}</div><div class="feed-rule" style="margin-top:28px"></div><div class="kicker" style="margin-top:20px">${l==='en'?'DEPOSITED MATERIAL':'투척한 자료'}</div>${uploads.length?`<div class="saved-grid">${uploads.map(u=>`<div class="artifact red"><div class="imgbox h230" style="background-image:url(${u.data});background-size:cover;background-position:center"></div><div class="cap">${esc(u.caption||'proof that today happened')}</div></div>`).join('')}</div>`:`<div class="empty">${l==='en'?'nothing deposited yet.':'아직 투척한 게 없습니다.'}</div>`}</section>`)}
-function bind(){wireNav();wireExhibits();document.querySelectorAll('[data-go]').forEach(b=>b.onclick=()=>nav(b.dataset.go));const lb=document.querySelector('#langBtn');if(lb)lb.onclick=()=>setLang(lang()==='en'?'ko':'en');const sb=document.querySelector('#saveBtn');if(sb)sb.onclick=()=>{const id=+sb.dataset.id,st=store(),x=new Set(st.saved||[]);x.has(id)?x.delete(id):x.add(id);st.saved=[...x];saveStore(st);toast(lang()==='en'?'saved. apparently.':'저장했습니다. 굳이.');render()};const drop=document.querySelector('#drop'),file=document.querySelector('#file');if(drop&&file){drop.onclick=()=>file.click();drop.ondragover=e=>{e.preventDefault();drop.style.borderColor='var(--yellow)'};drop.ondragleave=()=>drop.style.borderColor='';drop.ondrop=e=>{e.preventDefault();drop.style.borderColor='';if(e.dataTransfer.files[0])loadFile(e.dataTransfer.files[0])};file.onchange=()=>file.files[0]&&loadFile(file.files[0])}const up=document.querySelector('#uploadBtn');if(up)up.onclick=submitUpload}
-let pendingImage='';function loadFile(f){if(!/^image\/(jpeg|png|webp)$/.test(f.type)){toast('JPG / PNG / WEBP only');return}const r=new FileReader();r.onload=()=>{pendingImage=r.result;const d=document.querySelector('#drop');d.style.backgroundImage=`url(${pendingImage})`;d.style.backgroundSize='cover';d.style.backgroundPosition='center';d.querySelector('.drop-inner').style.opacity='.12'};r.readAsDataURL(f)}
-function submitUpload(){const human=document.querySelector('#human');if(!pendingImage){toast(lang()==='en'?'drop an image first.':'이미지를 먼저 놓고 가세요.');return}if(!human?.checked){toast(lang()==='en'?'confirm it is human-made.':'직접 제작 확인이 필요합니다.');return}const st=store();st.uploads=st.uploads||[];st.uploads.unshift({data:pendingImage,caption:document.querySelector('#caption').value,at:Date.now()});saveStore(st);pendingImage='';nav('/profile')}
+function bind(){wireNav();wireExhibits();document.querySelectorAll('[data-go]').forEach(b=>b.onclick=()=>nav(b.dataset.go));const lb=document.querySelector('#langBtn');if(lb)lb.onclick=()=>setLang(lang()==='en'?'ko':'en');const sb=document.querySelector('#saveBtn');if(sb)sb.onclick=()=>{const id=+sb.dataset.id,st=store(),x=new Set(st.saved||[]);x.has(id)?x.delete(id):x.add(id);st.saved=[...x];saveStore(st);toast(lang()==='en'?'saved. apparently.':'저장했습니다. 굳이.');render()};const drop=document.querySelector('#drop'),file=document.querySelector('#file');if(drop&&file){drop.onclick=()=>file.click();drop.ondragover=e=>{e.preventDefault();drop.style.borderColor='var(--yellow)'};drop.ondragleave=()=>drop.style.borderColor='';drop.ondrop=e=>{e.preventDefault();drop.style.borderColor='';if(e.dataTransfer.files[0])loadFile(e.dataTransfer.files[0])};file.onchange=()=>file.files[0]&&loadFile(file.files[0])}const caption=document.querySelector('#caption');if(caption)caption.oninput=updateUploadPreviewCaption;const up=document.querySelector('#uploadBtn');if(up)up.onclick=submitUpload}
+let pendingImage='',pendingOptimized=null,pendingPreviewUrl='';
+
+function formatBytes(n){
+ if(!Number.isFinite(n))return '';
+ if(n<1024)return n+' B';
+ if(n<1024*1024)return (n/1024).toFixed(n<100*1024?1:0)+' KB';
+ return (n/1024/1024).toFixed(1)+' MB';
+}
+function canvasBlob(canvas,quality){
+ return new Promise((resolve,reject)=>canvas.toBlob(b=>b?resolve(b):reject(new Error('image conversion failed')),'image/webp',quality));
+}
+async function encodeWebp(bitmap,w,h,quality){
+ const canvas=document.createElement('canvas');canvas.width=w;canvas.height=h;
+ const ctx=canvas.getContext('2d',{alpha:false});ctx.imageSmoothingEnabled=true;ctx.imageSmoothingQuality='high';
+ ctx.drawImage(bitmap,0,0,w,h);
+ return await canvasBlob(canvas,quality);
+}
+async function optimizeImage(file){
+ if(!/^image\/(jpeg|png|webp)$/.test(file.type))throw new Error('JPG / PNG / WEBP only');
+ if(file.size>MAX_SOURCE_BYTES)throw new Error(lang()==='ko'?'원본은 10MB 이하만 가능합니다.':'source image must be 10MB or smaller.');
+ const bitmap=await createImageBitmap(file);
+ const sourceW=bitmap.width,sourceH=bitmap.height,long=Math.max(sourceW,sourceH);
+ let scale=Math.min(1,MAX_LONG_EDGE/long),w=Math.max(1,Math.round(sourceW*scale)),h=Math.max(1,Math.round(sourceH*scale));
+ let quality=.82,blob=await encodeWebp(bitmap,w,h,quality);
+ const attempts=[
+   {max:MAX_LONG_EDGE,q:.76},
+   {max:1600,q:.78},
+   {max:1440,q:.76},
+   {max:1280,q:.74}
+ ];
+ for(const a of attempts){
+   if(blob.size<=TARGET_UPLOAD_BYTES)break;
+   const s=Math.min(1,a.max/long);w=Math.max(1,Math.round(sourceW*s));h=Math.max(1,Math.round(sourceH*s));quality=a.q;
+   blob=await encodeWebp(bitmap,w,h,quality);
+ }
+ bitmap.close?.();
+ return {blob,width:w,height:h,sourceWidth:sourceW,sourceHeight:sourceH,sourceBytes:file.size,quality};
+}
+function uploadPreviewMarkup(o){
+ const l=lang(),caption=document.querySelector('#caption')?.value?.trim()||'';
+ return `<div class="upload-feed-preview">
+   <div class="upload-preview-label">${l==='ko'?'피드 미리보기 // 업로드될 실제 파일':'FEED PREVIEW // ACTUAL UPLOAD FILE'}</div>
+   <div class="upload-preview-stage"><img src="${pendingPreviewUrl}" alt=""></div>
+   <div class="upload-preview-caption" id="uploadPreviewCaption">${esc(caption||(l==='ko'?'제목 없음 // 아직 인간':'untitled // still human'))}</div>
+   <div class="upload-opt-stats">${o.sourceWidth}×${o.sourceHeight} → ${o.width}×${o.height} // ${formatBytes(o.sourceBytes)} → ${formatBytes(o.blob.size)} // WEBP Q${Math.round(o.quality*100)}</div>
+   <div class="upload-change">${l==='ko'?'클릭하면 다른 이미지 선택':'click to choose another image'}</div>
+ </div>`;
+}
+function updateUploadPreviewCaption(){
+ const el=document.querySelector('#uploadPreviewCaption');if(!el)return;
+ const v=document.querySelector('#caption')?.value?.trim();
+ el.textContent=v||(lang()==='ko'?'제목 없음 // 아직 인간':'untitled // still human');
+}
+async function loadFile(f){
+ const d=document.querySelector('#drop'),content=document.querySelector('#dropContent');if(!d||!content)return;
+ try{
+   content.innerHTML='<div class="upload-optimizing">OPTIMIZING HUMAN EVIDENCE…</div>';
+   const optimized=await optimizeImage(f);
+   if(pendingPreviewUrl)URL.revokeObjectURL(pendingPreviewUrl);
+   pendingOptimized=optimized;pendingImage='';
+   pendingPreviewUrl=URL.createObjectURL(optimized.blob);
+   content.innerHTML=uploadPreviewMarkup(optimized);
+ }catch(err){
+   pendingOptimized=null;
+   content.innerHTML=`<b>${esc(err.message||'image failed')}</b><small>JPG / PNG / WEBP</small>`;
+   toast(err.message||'image failed');
+ }
+}
+function supabasePublicArtworkUrl(path){
+ return `${SUPABASE_URL}/storage/v1/object/public/artworks/${String(path).split('/').map(encodeURIComponent).join('/')}`;
+}
+async function persistOptimizedArtwork(o,caption){
+ if(!SUPABASE_READY)throw new Error('Supabase is not connected');
+ const id=crypto.randomUUID(),path=`public/${Date.now()}-${id}.webp`;
+ const storageRes=await fetch(`${SUPABASE_URL}/storage/v1/object/artworks/${path}`,{
+   method:'POST',
+   headers:{
+     'apikey':SUPABASE_PUBLISHABLE_KEY,
+     'Authorization':'Bearer '+SUPABASE_PUBLISHABLE_KEY,
+     'Content-Type':'image/webp',
+     'cache-control':'max-age=31536000',
+     'x-upsert':'false'
+   },
+   body:o.blob
+ });
+ if(!storageRes.ok)throw new Error('storage upload failed: '+(await storageRes.text()).slice(0,160));
+ const title=(caption||'untitled human artifact').slice(0,120);
+ const payload={
+   author_name:'anonymous human',
+   title,
+   description:(caption||'').slice(0,1000),
+   image_path:path,
+   image_width:o.width,
+   image_height:o.height,
+   image_bytes:o.blob.size,
+   human_confirmed:true,
+   status:'published',
+   published_at:new Date().toISOString()
+ };
+ const dbRes=await fetch(`${SUPABASE_URL}/rest/v1/artworks`,{
+   method:'POST',
+   headers:dbHeaders({'Prefer':'return=representation'}),
+   body:JSON.stringify(payload)
+ });
+ if(!dbRes.ok)throw new Error('database insert failed: '+(await dbRes.text()).slice(0,160));
+ const rows=await dbRes.json();
+ return {...rows[0],image_url:supabasePublicArtworkUrl(path)};
+}
+async function submitUpload(){
+ const human=document.querySelector('#human'),btn=document.querySelector('#uploadBtn');
+ if(!pendingOptimized){toast(lang()==='en'?'drop an image first.':'이미지를 먼저 놓고 가세요.');return}
+ if(!human?.checked){toast(lang()==='en'?'confirm it is human-made.':'직접 제작 확인이 필요합니다.');return}
+ const caption=document.querySelector('#caption')?.value?.trim()||'';
+ btn.disabled=true;btn.textContent=lang()==='ko'?'압축본 보관 중…':'ARCHIVING OPTIMIZED FILE…';
+ try{
+   const row=await persistOptimizedArtwork(pendingOptimized,caption);
+   const st=store();st.lastUploaded=row;saveStore(st);
+   if(pendingPreviewUrl)URL.revokeObjectURL(pendingPreviewUrl);
+   pendingOptimized=null;pendingPreviewUrl='';
+   nav('/');
+   setTimeout(()=>toast(lang()==='ko'?'보관 완료. 원본은 저장하지 않았습니다.':'archived. original was not stored.'),60);
+ }catch(err){
+   toast(err.message||'upload failed');
+   btn.disabled=false;btn.textContent=copy[lang()].leave;
+ }
+}
 function toast(msg){const e=document.createElement('div');e.className='toast';e.textContent=msg;document.body.appendChild(e);setTimeout(()=>e.remove(),1800)}
 function render(){
  clearInterval(timerId);if(feedObserver){feedObserver.disconnect();feedObserver=null}
