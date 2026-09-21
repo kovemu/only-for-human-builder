@@ -239,3 +239,51 @@ html[lang="ko"] .doom-title,html[lang="ko"] .tagline,html[lang="ko"] .premise,ht
 }
 
 .first-artwork-mobile{display:none}
+
+@media(max-width:560px){
+  .first-artwork-mobile{display:flex!important}
+
+  /* First viewport = header/timer/copy/feed label + first artwork, all visible together. */
+  .home-intro{
+    height:calc(100dvh - 58px);
+    min-height:calc(100dvh - 58px);
+    max-height:calc(100dvh - 58px);
+    overflow:hidden;
+    scroll-snap-align:start;
+    scroll-snap-stop:always;
+  }
+
+  .home-intro .feed-head{margin-top:18px}
+  .first-artwork-mobile{
+    flex:1 1 auto;
+    min-height:0;
+    overflow:hidden;
+    margin-top:6px;
+  }
+  .first-artwork-mobile .stream-item{
+    height:100%;
+    min-height:0;
+    padding:2px 18px 4px;
+    overflow:hidden;
+  }
+  .first-artwork-mobile .art-stage{
+    flex:1 1 auto;
+    min-height:0;
+    height:auto;
+  }
+  .first-artwork-mobile .art-placeholder,
+  .first-artwork-mobile .art-image{
+    max-height:100%;
+  }
+
+  /* Every following artwork is a discrete page, not a continuous strip. */
+  .mobile-feed .stream-item{
+    height:100dvh;
+    min-height:100dvh;
+    max-height:100dvh;
+    overflow:hidden;
+    scroll-snap-align:start;
+    scroll-snap-stop:always;
+  }
+  html{scroll-snap-type:y mandatory}
+}
