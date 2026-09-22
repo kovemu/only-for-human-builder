@@ -1049,3 +1049,108 @@ html,body{
     box-shadow:0 0 0 3px #c7b596,0 6px 16px rgba(0,0,0,.15)!important;
   }
 }
+
+/* 2026-09-23: mixed frame collection — CSS-only approximation, including ornate gold */
+.live-artifact.frame-black .live-imgbox{
+  border-color:#171717!important;
+  box-shadow:0 0 0 3px #c8baa5,0 10px 20px rgba(0,0,0,.12)!important;
+}
+.live-artifact.frame-walnut .live-imgbox{
+  border-color:#4a3124!important;
+  box-shadow:inset 0 0 0 2px #7b5a44,0 0 0 3px #c8baa5,0 10px 20px rgba(0,0,0,.12)!important;
+}
+.live-artifact.frame-simple .live-imgbox{
+  border-width:5px!important;
+  border-color:#242424!important;
+  padding:20px!important;
+  box-shadow:0 0 0 1px #bcb3a8,0 7px 15px rgba(0,0,0,.09)!important;
+}
+.live-artifact.frame-gold .live-imgbox,
+.live-artifact.frame-gold-mat .live-imgbox{
+  position:relative;
+  border:15px ridge #c9a34d!important;
+  padding:22px!important;
+  background:
+    linear-gradient(#f3ead7,#f3ead7) padding-box,
+    linear-gradient(135deg,#6e4e13 0%,#f7dd7d 18%,#9a721e 36%,#f2d36e 54%,#775510 73%,#e8c55b 100%) border-box!important;
+  box-shadow:
+    inset 0 0 0 4px #6f5217,
+    inset 0 0 0 8px #e8d39a,
+    0 0 0 4px #9e865e,
+    0 12px 22px rgba(73,53,15,.18)!important;
+}
+.live-artifact.frame-gold .live-imgbox::before,
+.live-artifact.frame-gold-mat .live-imgbox::before{
+  content:"";
+  position:absolute;
+  inset:-11px;
+  pointer-events:none;
+  background:
+    radial-gradient(circle at 4% 4%,#f6db79 0 3px,#8a6214 4px 6px,transparent 7px),
+    radial-gradient(circle at 96% 4%,#f6db79 0 3px,#8a6214 4px 6px,transparent 7px),
+    radial-gradient(circle at 4% 96%,#f6db79 0 3px,#8a6214 4px 6px,transparent 7px),
+    radial-gradient(circle at 96% 96%,#f6db79 0 3px,#8a6214 4px 6px,transparent 7px),
+    repeating-linear-gradient(90deg,transparent 0 18px,rgba(255,224,119,.36) 18px 20px,transparent 20px 34px);
+  mix-blend-mode:multiply;
+  opacity:.72;
+}
+.live-artifact.frame-gold .live-imgbox::after,
+.live-artifact.frame-gold-mat .live-imgbox::after{
+  content:"";
+  position:absolute;
+  inset:5px;
+  pointer-events:none;
+  border:2px solid #7a5a16;
+  box-shadow:
+    inset 0 0 0 2px #eddc9f,
+    inset 0 0 0 5px rgba(111,76,12,.34);
+}
+.live-artifact.frame-gold-mat .live-imgbox{
+  padding:38px!important;
+}
+.live-artifact.frame-gold-mat .live-imgbox img{
+  box-shadow:0 0 0 1px #c1af87,0 0 0 12px #f1eadc,0 0 0 13px #bda978!important;
+}
+.live-artifact.frame-gold .cap,
+.live-artifact.frame-gold-mat .cap{
+  border-color:#c8b07e!important;
+  background:#fbf3df!important;
+}
+
+/* carry the chosen frame into the exhibit modal */
+.exhibit-art-stage.frame-black .art-image{
+  border-color:#171717!important;
+  box-shadow:0 0 0 4px #c5b59b,0 10px 24px rgba(0,0,0,.16)!important;
+}
+.exhibit-art-stage.frame-walnut .art-image{
+  border-color:#4a3124!important;
+  box-shadow:0 0 0 4px #ba9e7f,0 10px 24px rgba(0,0,0,.16)!important;
+}
+.exhibit-art-stage.frame-simple .art-image{
+  border-width:7px!important;
+  padding:18px!important;
+  box-shadow:0 0 0 2px #b8afa4,0 8px 20px rgba(0,0,0,.12)!important;
+}
+.exhibit-art-stage.frame-gold .art-image,
+.exhibit-art-stage.frame-gold-mat .art-image{
+  border:16px ridge #c9a34d!important;
+  padding:22px!important;
+  background:#f7f0e1!important;
+  box-shadow:
+    0 0 0 3px #7e5b17,
+    0 0 0 7px #e6cf8f,
+    0 12px 28px rgba(70,48,10,.2)!important;
+}
+.exhibit-art-stage.frame-gold-mat .art-image{
+  padding:38px!important;
+}
+
+/* on phone keep ornate frames lighter so art still fits one screen */
+@media(max-width:560px){
+  .mobile-feed .frame-gold .art-image,
+  .mobile-feed .frame-gold-mat .art-image{
+    border:9px ridge #c9a34d!important;
+    padding:7px!important;
+    box-shadow:0 0 0 3px #b1904b,0 7px 16px rgba(0,0,0,.13)!important;
+  }
+}
