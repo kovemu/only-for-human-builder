@@ -167,10 +167,13 @@ function scatterProfile(row,index=0){
  return {span,nudge,tilt};
 }
 function frameVariant(row,index=0){
- const key=String(row.slug||'')+'|frame|'+index;
+ const key=String(row.slug||'')+'|frame';
  let h=2166136261;
  for(let i=0;i<key.length;i++){h^=key.charCodeAt(i);h=Math.imul(h,16777619)}
  h=h>>>0;
+ const ratio=(row.image_width&&row.image_height)?row.image_width/row.image_height:1;
+ // Only a minority of portrait-ish works get the real ornate frame asset.
+ if(ratio<.95 && h%3===0)return 'frame-asset-gold';
  const variants=['frame-black','frame-walnut','frame-simple','frame-gold','frame-black','frame-gold-mat','frame-simple','frame-walnut'];
  return variants[h%variants.length];
 }
