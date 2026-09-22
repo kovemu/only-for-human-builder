@@ -204,6 +204,7 @@ function liveExhibitModalHtml(row){
          <div class="exhibit-kicker">${l==='ko'?'인류 최후의 미술관':'THE LAST MUSEUM OF HUMANITY'}</div>
          <h2>${title}</h2>
          <div class="exhibit-meta">${esc(row.author_name||'anonymous human')} · ${date}</div>
+         <div class="exhibit-status-line"><span>${lang()==='ko'?'전시 상태':'EXHIBIT STATUS'}</span><b class="status-${esc(row.status||'published')}">${esc(artworkStatusLabel(row))}</b></div>
          <p class="exhibit-description">${desc}</p>
          <div class="exhibit-actions"><button class="exhibit-action" id="modalShareBtn">${l==='ko'?'[ 퍼가기 ]':'[ SHARE ]'}</button></div>
          <section class="visitor-notes">
@@ -387,7 +388,59 @@ function openExhibit(i,{push=true}={}){
 function upload(){const l=lang(),t=copy[l];return frame(`<section class="subpage"><div class="kicker">${t.uploadKicker}</div><h1 class="title">${t.uploadTitle}</h1><div class="dropzone" id="drop"><input id="file" type="file" accept="image/png,image/jpeg,image/webp" hidden><div class="drop-inner" id="dropContent"><b>${t.drop}</b><small>${t.formats}</small><small class="opt-hint">${l==='en'?'preview = what the feed gets // auto WebP compression':'미리보기 = 실제 피드 이미지 // WebP 자동 압축'}</small></div></div><div class="formrow"><label class="label">${t.caption}</label><textarea id="caption" class="field" placeholder="${l==='en'?'ex: this was lunch. i liked it.':'예: 점심이었다. 맛있었다.'}"></textarea></div><label class="check"><input id="human" type="checkbox"><span>${t.human}<br><b style="color:var(--red)">${t.warning}</b></span></label><div class="actions"><button class="plain" data-go="/">${t.cancel}</button><button class="primary" id="uploadBtn">${t.leave}</button></div></section>`)}
 function detail(){const l=lang(),t=copy[l];const id=+(new URLSearchParams(location.search).get('id')||0);const s=samples[id]||samples[0];const st=store(),saved=new Set(st.saved||[]);return frame(`<section class="subpage"><button class="plain" data-go="/">← ${l==='en'?'RETURN TO THE PILE':'다시 더미로'}</button><div class="kicker" style="margin-top:22px">${t.detail} // ITEM ${String(id+1).padStart(6,'0')}</div><div class="detail-grid"><div class="detail-image">IMAGE GOES HERE // TEMPORARY</div><div class="detail-copy"><h2>${esc(s[l==='en'?0:1])}</h2><p>@someone // 2026</p><button class="primary" id="saveBtn" data-id="${id}">${saved.has(id)?'[ SAVED ]':t.save}</button><p style="color:var(--red);margin-top:45px">${t.report}</p><p style="margin-top:70px">no score. no likes.<br>no recommendation engine.<br>kept because someone wanted to.</p></div></div></section>`)}
 function savedPage(){const l=lang(),t=copy[l],ids=store().saved||[];return frame(`<section class="subpage"><div class="kicker">PERSONAL BUNKER // LOCAL COLLECTION</div><h1 class="title">${t.savedTitle}</h1>${ids.length?`<div class="saved-grid">${ids.map(art).join('')}</div>`:`<div class="empty">${l==='en'?'nothing saved. the void remains organized.':'저장한 게 없습니다. 공허만 잘 정리돼 있습니다.'}</div>`}</section>`)}
-function profile(){const l=lang(),t=copy[l],uploads=store().uploads||[];return frame(`<section class="subpage"><div class="kicker">${t.profile}</div><h1 class="title" style="margin-bottom:8px">@someone</h1><div style="color:#777;font-size:12px">${t.bio}</div><div class="feed-rule" style="margin-top:28px"></div><div class="kicker" style="margin-top:20px">${l==='en'?'DEPOSITED MATERIAL':'투척한 자료'}</div>${uploads.length?`<div class="saved-grid">${uploads.map(u=>`<div class="artifact red"><div class="imgbox h230" style="background-image:url(${u.data});background-size:cover;background-position:center"></div><div class="cap">${esc(u.caption||'proof that today happened')}</div></div>`).join('')}</div>`:`<div class="empty">${l==='en'?'nothing deposited yet.':'아직 투척한 게 없습니다.'}</div>`}</section>`)}
+
+function artworkStatusLabel(row){
+ const l=lang(),s=row?.status||'published';
+ const labels={
+   published:l==='ko'?'전시 중':'ON DISPLAY',
+   pending:l==='ko'?'검토 중':'UNDER REVIEW',
+   rejected:l==='ko'?'전시 보류':'NOT DISPLAYED',
+   hidden:l==='ko'?'숨김':'HIDDEN'
+ };
+ return labels[s]||String(s).toUpperCase();
+}
+function liveProfileCard(row){
+ const url=liveArtUrl(row),title=esc(row.title||'untitled human artifact'),status=artworkStatusLabel(row);
+ return `<a href="/exhibit/${esc(row.slug)}" data-live-exhibit="${esc(row.slug)}" class="artifact profile-artifact">
+   <div class="imgbox profile-imgbox"><img src="${url}" alt="" loading="lazy" decoding="async"></div>
+   <div class="profile-card-row"><div class="cap">${title}</div><span class="art-status status-${esc(row.status||'published')}">${esc(status)}</span></div>
+ </a>`;
+}
+async function hydrateProfileArtworks(){
+ const box=document.querySelector('#profileArtworks');if(!box||!SUPABASE_READY)return;
+ const slugs=(store().myArtworkSlugs||[]).filter(Boolean);
+ if(!slugs.length)return;
+ try{
+   const filter=slugs.map(s=>`"${String(s).replaceAll('"','')}"`).join(',');
+   const r=await fetch(`${SUPABASE_URL}/rest/v1/artworks?slug=in.(${encodeURIComponent(filter)})&select=id,slug,title,description,author_name,image_path,image_width,image_height,image_bytes,status,created_at,published_at`,{headers:dbHeaders()});
+   if(!r.ok)return;
+   const rows=await r.json(),bySlug=new Map(rows.map(x=>[x.slug,x]));
+   const ordered=slugs.map(s=>bySlug.get(s)).filter(Boolean);
+   if(!ordered.length)return;
+   liveArtworks=[...ordered,...liveArtworks.filter(x=>!bySlug.has(x.slug))];
+   box.innerHTML=ordered.map(liveProfileCard).join('');
+   wireLiveExhibits(box);
+ }catch{}
+}
+function profile(){const l=lang(),t=copy[l],uploads=store().uploads||[];return frame(`<section class="subpage profile-page">
+  <div class="profile-head-row">
+    <div>
+      <div class="kicker">${t.profile}</div>
+      <h1 class="title" style="margin-bottom:8px">@someone</h1>
+      <div style="color:#777;font-size:12px">${t.bio}</div>
+    </div>
+    <button class="primary profile-leave-btn" data-go="/upload">${t.leave}</button>
+  </div>
+  <div class="feed-rule" style="margin-top:28px"></div>
+  <div class="profile-section-head">
+    <div class="kicker">${l==='en'?'DEPOSITED MATERIAL':'투척한 자료'}</div>
+    <div class="profile-hint">${l==='en'?'tap a work to check its exhibit status':'작품을 눌러 전시 상태 확인'}</div>
+  </div>
+  <div id="profileArtworks" class="saved-grid profile-grid">
+    ${uploads.map((u,i)=>`<a href="/detail?id=${i}" data-nav class="artifact red legacy-profile-artifact"><div class="imgbox h230" style="background-image:url(${u.data});background-size:contain;background-repeat:no-repeat;background-position:center"></div><div class="profile-card-row"><div class="cap">${esc(u.caption||'proof that today happened')}</div><span class="art-status status-local">${l==='en'?'LOCAL':'로컬'}</span></div></a>`).join('')}
+  </div>
+  ${!uploads.length && !(store().myArtworkSlugs||[]).length?`<div class="empty">${l==='en'?'nothing deposited yet.':'아직 투척한 게 없습니다.'}</div>`:''}
+</section>`)}
 function bind(){wireNav();wireExhibits();document.querySelectorAll('[data-go]').forEach(b=>b.onclick=()=>nav(b.dataset.go));const lb=document.querySelector('#langBtn');if(lb)lb.onclick=()=>setLang(lang()==='en'?'ko':'en');const sb=document.querySelector('#saveBtn');if(sb)sb.onclick=()=>{const id=+sb.dataset.id,st=store(),x=new Set(st.saved||[]);x.has(id)?x.delete(id):x.add(id);st.saved=[...x];saveStore(st);toast(lang()==='en'?'saved. apparently.':'저장했습니다. 굳이.');render()};const drop=document.querySelector('#drop'),file=document.querySelector('#file');if(drop&&file){drop.onclick=()=>file.click();drop.ondragover=e=>{e.preventDefault();drop.style.borderColor='var(--yellow)'};drop.ondragleave=()=>drop.style.borderColor='';drop.ondrop=e=>{e.preventDefault();drop.style.borderColor='';if(e.dataTransfer.files[0])loadFile(e.dataTransfer.files[0])};file.onchange=()=>file.files[0]&&loadFile(file.files[0])}const caption=document.querySelector('#caption');if(caption)caption.oninput=updateUploadPreviewCaption;const up=document.querySelector('#uploadBtn');if(up)up.onclick=submitUpload}
 let pendingImage='',pendingOptimized=null,pendingPreviewUrl='';
 
@@ -505,7 +558,7 @@ async function submitUpload(){
  btn.disabled=true;btn.textContent=lang()==='ko'?'압축본 보관 중…':'ARCHIVING OPTIMIZED FILE…';
  try{
    const row=await persistOptimizedArtwork(pendingOptimized,caption);
-   const st=store();st.lastUploaded=row;saveStore(st);
+   const st=store();st.lastUploaded=row;st.myArtworkSlugs=[row.slug,...(st.myArtworkSlugs||[]).filter(x=>x!==row.slug)].slice(0,100);saveStore(st);
    if(pendingPreviewUrl)URL.revokeObjectURL(pendingPreviewUrl);
    pendingOptimized=null;pendingPreviewUrl='';
    nav('/');
@@ -523,6 +576,7 @@ function render(){
  document.querySelector('#app').innerHTML=exhibitMatch?home():p==='/upload'?upload():p==='/saved'?savedPage():p==='/profile'?profile():p==='/detail'?detail():home();
  bind();
  if(p==='/'||exhibitMatch){startTimer();setupInfiniteFeed();setupMobilePaging();hydrateLiveFeed()}
+ if(p==='/profile')hydrateProfileArtworks()
  if(exhibitMatch)requestAnimationFrame(()=>openExhibitRoute(exhibitMatch[1]));
 }
 render();
