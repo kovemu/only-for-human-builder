@@ -469,3 +469,21 @@ html[lang="ko"] .doom-title,html[lang="ko"] .tagline,html[lang="ko"] .premise,ht
  .upload-preview-caption{font-size:12px}
  .upload-opt-stats{font-size:8px}
 }
+
+.live-feed-grid{
+  grid-column:1/-1;
+  display:grid;
+  grid-template-columns:210px minmax(520px,1fr) 260px;
+  gap:35px;
+  align-items:start;
+  margin-bottom:24px;
+}
+.live-imgbox{display:flex;align-items:center;justify-content:center;overflow:hidden;min-height:0}
+.live-imgbox img{display:block;width:100%;height:auto;max-height:620px;object-fit:contain}
+@media(max-width:900px){
+  .live-feed-grid{grid-template-columns:1fr 1.7fr;gap:22px}
+  .live-feed-grid .right-col{grid-column:1/-1;display:grid;grid-template-columns:repeat(3,1fr)}
+}
+@media(max-width:560px){
+  .live-feed-grid{display:none!important}
+}
