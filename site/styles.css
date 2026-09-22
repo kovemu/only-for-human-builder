@@ -673,3 +673,379 @@ html[lang="ko"] .doom-title,html[lang="ko"] .tagline,html[lang="ko"] .premise,ht
     flex:0 0 auto;
   }
 }
+
+/* 2026-09-23: museum-wall redesign — light gallery shell, framed works, dark countdown installation */
+:root{
+  --museum-wall:#eeeae0;
+  --museum-paper:#fffdf7;
+  --museum-ink:#161616;
+  --museum-muted:#6d6a63;
+  --museum-frame:#171717;
+  --museum-frame-inner:#b79b72;
+  --museum-plaque:#f6f1e7;
+}
+
+/* overall gallery room */
+html,body{
+  background:var(--museum-wall)!important;
+  color:var(--museum-ink)!important;
+}
+.shell{
+  background:var(--museum-paper)!important;
+  box-shadow:0 0 0 1px #d8d2c6;
+}
+.page{
+  background:var(--museum-paper)!important;
+}
+.topbar{
+  color:var(--museum-ink)!important;
+}
+.brand span{color:#111!important}
+.status,.navlink{color:#3e3b36!important}
+.lang{color:#111!important;font-weight:700}
+.rule{height:2px!important}
+
+/* countdown = the one deliberately ugly digital installation in the museum */
+.home-intro{
+  color:var(--museum-ink);
+}
+.home-intro .doom{
+  background:#050505;
+  color:#fff;
+  border:1px solid #1e1e1e;
+  box-shadow:0 7px 24px rgba(0,0,0,.12);
+  padding:12px 18px 16px;
+  margin-top:10px;
+}
+.home-intro .doom-badge{
+  margin-left:4px;
+}
+.home-intro .doom-title{
+  color:#fff!important;
+}
+.home-intro .glitch-rule{
+  margin-left:0;
+  margin-right:0;
+}
+.home-intro .cta-row{
+  margin-top:20px!important;
+  color:var(--museum-ink);
+}
+.home-intro .tagline{
+  color:var(--museum-ink)!important;
+}
+.leave-btn{
+  background:#111!important;
+  color:var(--yellow)!important;
+  border:2px solid #111!important;
+  box-shadow:5px 5px 0 #d9d2c3!important;
+}
+.feed-head{
+  color:#171717!important;
+  letter-spacing:.04em;
+}
+.feed-head b::before{
+  content:"GALLERY 01 // ";
+  color:#777167;
+}
+.sort,.feed-note{
+  color:var(--museum-muted)!important;
+}
+.feed-rule{
+  height:1px!important;
+  background:#1a1a1a!important;
+  opacity:.38;
+}
+
+/* desktop museum wall */
+.desktop-gallery{
+  background:var(--museum-paper)!important;
+}
+.live-feed-grid{
+  padding:32px 14px 46px;
+}
+.live-feed-grid .scatter-card{
+  color:var(--museum-ink)!important;
+}
+.live-feed-grid .live-imgbox{
+  position:relative;
+  background:#f7f2e8!important;
+  border:10px solid var(--museum-frame)!important;
+  padding:16px!important;
+  box-shadow:
+    inset 0 0 0 1px #4a4a4a,
+    0 0 0 4px #cbbda6,
+    0 10px 20px rgba(0,0,0,.12)!important;
+  overflow:hidden!important;
+}
+.live-feed-grid .live-imgbox::after{
+  content:"";
+  position:absolute;
+  inset:10px;
+  pointer-events:none;
+  border:1px solid rgba(0,0,0,.16);
+}
+.live-feed-grid .live-imgbox img{
+  background:#fff!important;
+  box-shadow:0 0 0 1px rgba(0,0,0,.08);
+}
+.live-feed-grid .cap{
+  display:inline-block;
+  background:var(--museum-plaque);
+  color:#201e1a!important;
+  border:1px solid #d9d1c4;
+  padding:6px 9px 5px;
+  margin-top:14px!important;
+  font-size:11px!important;
+  line-height:1.35;
+  box-shadow:0 1px 0 #fff inset;
+}
+.live-feed-grid .scatter-card:nth-child(3n+1) .live-imgbox{
+  border-color:#161616!important;
+}
+.live-feed-grid .scatter-card:nth-child(3n+2) .live-imgbox{
+  border-color:#4c392b!important;
+}
+.live-feed-grid .scatter-card:nth-child(3n) .live-imgbox{
+  border-color:#282522!important;
+}
+
+/* legacy/sample cards also read like framed placeholders */
+.desktop-gallery .artifact:not(.live-artifact) .imgbox,
+.saved-grid .imgbox,
+.profile-imgbox{
+  background:#f4efe5!important;
+  border:8px solid #1b1b1b!important;
+  padding:10px;
+  box-shadow:0 0 0 3px #cabba2,0 8px 16px rgba(0,0,0,.11)!important;
+}
+.desktop-gallery .artifact:not(.live-artifact) .cap,
+.saved-grid .cap,
+.profile-card-row .cap{
+  color:#24211d!important;
+}
+
+/* subpages become museum utility rooms, not black dashboards */
+.subpage{
+  color:var(--museum-ink)!important;
+}
+.kicker{
+  color:#6b6256!important;
+  letter-spacing:.05em;
+}
+.title{
+  color:#171717!important;
+}
+.dropzone{
+  background:#f5f0e6!important;
+  border:10px solid #1a1a1a!important;
+  box-shadow:0 0 0 4px #cbbda6!important;
+  color:#171717!important;
+}
+.dropzone::before,.dropzone::after{display:none!important}
+.drop-inner small{color:#716b62!important}
+.opt-hint{color:#6a604f!important}
+.label{color:#4c463d!important}
+.field{
+  background:#fff!important;
+  border:1px solid #aaa196!important;
+  color:#171717!important;
+}
+.check{color:#25221d!important}
+.plain{color:#5f5a52!important}
+.primary{
+  background:#111!important;
+  color:#fff!important;
+  border:1px solid #111!important;
+  box-shadow:4px 4px 0 #d3cabd!important;
+}
+.upload-preview-stage{
+  background:#f5f0e6!important;
+  border:9px solid #171717;
+  padding:14px;
+  box-shadow:0 0 0 3px #c9baa1;
+}
+.upload-preview-stage img{
+  border:0!important;
+  box-shadow:none!important;
+}
+.upload-preview-caption{color:#1d1b18!important}
+.upload-opt-stats{color:#6a655e!important}
+.upload-change{color:#5e574d!important}
+
+/* profile / saved */
+.profile-hint,.empty{color:var(--museum-muted)!important}
+.art-status{
+  background:#f8f3e9;
+}
+.status-published{color:#6f6500!important}
+.status-hidden{color:#666!important}
+.status-pending{color:#1f42a6!important}
+.status-rejected{color:#a31d22!important}
+
+/* exhibit modal becomes a white gallery room */
+.exhibit-backdrop{
+  background:rgba(38,34,28,.62)!important;
+  backdrop-filter:blur(5px) saturate(.6)!important;
+}
+.exhibit-panel{
+  background:var(--museum-paper)!important;
+  color:var(--museum-ink)!important;
+  border:1px solid #cfc7ba!important;
+  box-shadow:0 18px 60px rgba(0,0,0,.28)!important;
+}
+.exhibit-bar{
+  background:#f4efe5!important;
+  color:#25211d!important;
+  border-bottom:1px solid #d3ccbf!important;
+}
+.exhibit-bar span{color:#756b5a!important}
+.exhibit-close{color:#111!important}
+.exhibit-art{
+  background:#ebe5d9!important;
+  border-right:1px solid #d0c8ba!important;
+  padding:30px!important;
+}
+.exhibit-art-stage{
+  background:#f8f4eb;
+  padding:20px;
+  box-shadow:inset 0 0 0 1px #ded6c9;
+}
+.exhibit-art .art-image{
+  border:12px solid #181818;
+  padding:14px;
+  background:#fff;
+  box-shadow:
+    0 0 0 4px #c7b596,
+    0 10px 24px rgba(0,0,0,.16);
+}
+.exhibit-copy{
+  background:var(--museum-paper)!important;
+  color:var(--museum-ink)!important;
+}
+.exhibit-kicker{
+  color:#766c5c!important;
+}
+.exhibit-copy h2{
+  color:#151515!important;
+  font-family:Georgia,"Times New Roman",serif;
+  font-weight:500!important;
+}
+.exhibit-meta,.exhibit-description{
+  color:#6b655c!important;
+}
+.exhibit-status-line{
+  border-color:#d8d0c3!important;
+  color:#777066!important;
+}
+.exhibit-action{
+  background:#fff!important;
+  border:1px solid #1e1e1e!important;
+  color:#171717!important;
+  box-shadow:3px 3px 0 #d4cabb!important;
+}
+.owner-controls{
+  border-top:1px solid #d5cdc0!important;
+}
+.owner-controls-title{
+  color:#706554!important;
+}
+.owner-delete{
+  color:#8f1c21!important;
+  border-color:#8f1c21!important;
+  box-shadow:3px 3px 0 #e6d9d2!important;
+}
+.visitor-notes{
+  border-top:1px solid #d8d0c3!important;
+}
+.visitor-notes-head{
+  color:#25211d!important;
+}
+.visitor-notes-head span,.notes-loading,.notes-empty,.visitor-note-meta{
+  color:#81796d!important;
+}
+.visitor-note{
+  border-bottom:1px solid #e2dbd0!important;
+}
+.visitor-note-body{
+  color:#201d19!important;
+}
+.visitor-note-form{
+  background:var(--museum-paper)!important;
+}
+.visitor-note-form input{
+  background:#fff!important;
+  color:#171717!important;
+  border:1px solid #aaa196!important;
+}
+.visitor-note-form button{
+  background:#171717!important;
+  color:#fff!important;
+  border:1px solid #171717!important;
+}
+
+/* toast / footer */
+.toast{
+  background:#fffdf7!important;
+  color:#171717!important;
+  border:1px solid #171717!important;
+  box-shadow:4px 4px 0 #d0c6b7!important;
+}
+.footer{color:#777066!important}
+
+/* mobile: white museum wall, dark clock card, each work as a single framed exhibit */
+@media(max-width:560px){
+  .shell,.page{background:var(--museum-paper)!important}
+  .topbar{background:var(--museum-paper)!important}
+  .home-intro .doom{
+    margin:4px 0 0!important;
+    padding:5px 7px 9px!important;
+    border:1px solid #111!important;
+    box-shadow:none!important;
+  }
+  .home-intro .doom-title{
+    background:#050505!important;
+    color:#fff!important;
+  }
+  .home-intro .cta-row,
+  .home-intro .feed-head{
+    color:#171717!important;
+  }
+  .mobile-feed{
+    background:var(--museum-paper)!important;
+  }
+  .mobile-feed .stream-item{
+    background:var(--museum-paper)!important;
+  }
+  .mobile-feed .art-stage{
+    padding:14px 12px;
+    background:#eee8dc;
+  }
+  .mobile-feed .art-image,
+  .mobile-feed .art-placeholder{
+    border:9px solid #181818!important;
+    padding:8px;
+    background:#fff!important;
+    box-shadow:0 0 0 3px #cab99d,0 8px 18px rgba(0,0,0,.12)!important;
+  }
+  .mobile-feed .cap{
+    color:#231f1a!important;
+    background:var(--museum-plaque);
+    border:1px solid #d7cec0;
+    padding:7px 8px;
+    width:auto!important;
+    max-width:92%!important;
+  }
+  .exhibit-panel{background:var(--museum-paper)!important}
+  .exhibit-layout{background:var(--museum-paper)!important}
+  .exhibit-art{
+    background:#ebe5d9!important;
+    border-bottom:1px solid #d0c8ba!important;
+  }
+  .exhibit-art-stage{padding:10px}
+  .exhibit-art .art-image{
+    border-width:8px!important;
+    padding:8px!important;
+    box-shadow:0 0 0 3px #c7b596,0 6px 16px rgba(0,0,0,.15)!important;
+  }
+}
