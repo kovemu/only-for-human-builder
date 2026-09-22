@@ -154,7 +154,19 @@ async function fetchLiveArtworks(limit=40){
  }catch{return []}
 }
 function liveArtUrl(row){return supabasePublicArtworkUrl(row.image_path)}
-function liveArtCard(row,{mobile=false}={}){
+function scatterProfile(row,index=0){
+ const key=String(row.slug||'')+':'+index;
+ let h=2166136261;
+ for(let i=0;i<key.length;i++){h^=key.charCodeAt(i);h=Math.imul(h,16777619)}
+ h=h>>>0;
+ const ratio=(row.image_width&&row.image_height)?row.image_width/row.image_height:1;
+ const spans=ratio>1.55?[5,6,7,4,5,6]:ratio<.72?[2,3,3,4,2,3]:[3,4,5,3,6,4];
+ const span=spans[h%spans.length];
+ const nudge=[0,0,18,34,52,12][(h>>>5)%6];
+ const tilt=[0,0,0,1,-1,0][(h>>>9)%6];
+ return {span,nudge,tilt};
+}
+function liveArtCard(row,{mobile=false,scatterIndex=0}={}){
  const url=liveArtUrl(row),title=esc(row.title||'untitled human artifact'),slug=esc(row.slug);
  if(mobile){
    return `<a href="/exhibit/${slug}" data-live-exhibit="${slug}" class="artifact stream-item live-artifact">
@@ -164,8 +176,9 @@ function liveArtCard(row,{mobile=false}={}){
      </div>
    </a>`;
  }
- return `<a href="/exhibit/${slug}" data-live-exhibit="${slug}" class="artifact live-artifact">
-   <div class="imgbox live-imgbox"><img src="${url}" width="${row.image_width||''}" height="${row.image_height||''}" alt="" loading="lazy" decoding="async"></div>
+ const p=scatterProfile(row,scatterIndex);
+ return `<a href="/exhibit/${slug}" data-live-exhibit="${slug}" class="artifact live-artifact scatter-card" style="--scatter-span:${p.span};--scatter-nudge:${p.nudge}px;--scatter-tilt:${p.tilt}deg">
+   <div class="live-imgbox"><img src="${url}" width="${row.image_width||''}" height="${row.image_height||''}" alt="" loading="lazy" decoding="async"></div>
    <div class="cap">${title}</div>
  </a>`;
 }
@@ -188,12 +201,7 @@ async function hydrateLiveFeed(){
  }
  const desktop=document.querySelector('.desktop-gallery');
  if(desktop){
-   const cols=[[],[],[]];rows.forEach((r,i)=>cols[i%3].push(liveArtCard(r)));
-   desktop.insertAdjacentHTML('afterbegin',`<div class="live-feed-grid">
-     <div class="col">${cols[0].join('')}</div>
-     <div class="col center-col">${cols[1].join('')}</div>
-     <div class="col right-col">${cols[2].join('')}</div>
-   </div>`);
+   desktop.innerHTML=`<div class="live-feed-grid">${rows.map((r,i)=>liveArtCard(r,{scatterIndex:i})).join('')}</div>`;
    wireLiveExhibits(desktop);
  }
 }
@@ -673,6 +681,16 @@ async function persistOptimizedArtwork(o,caption){
  const rows=await dbRes.json();
  return {...rows[0],image_url:supabasePublicArtworkUrl(path),owner_token:ownerToken};
 }
+function uploadedPreviewMarkup(row,caption){
+ const l=lang(),url=row.image_url||supabasePublicArtworkUrl(row.image_path);
+ return `<div class="upload-feed-preview upload-complete">
+   <div class="upload-preview-label">${l==='ko'?'보관 완료 // 이 화면에 그대로 있습니다':'ARCHIVED // STAYING RIGHT HERE'}</div>
+   <div class="upload-preview-stage"><img src="${url}" alt=""></div>
+   <div class="upload-preview-caption">${esc(caption||(l==='ko'?'제목 없음 // 아직 인간':'untitled // still human'))}</div>
+   <div class="upload-opt-stats">${row.image_width||''}×${row.image_height||''} // ${formatBytes(row.image_bytes||0)} // WEBP</div>
+   <div class="upload-change">${l==='ko'?'여기를 눌러 다음 이미지 선택':'click here to leave another image'}</div>
+ </div>`;
+}
 async function submitUpload(){
  const human=document.querySelector('#human'),btn=document.querySelector('#uploadBtn');
  if(!pendingOptimized){toast(lang()==='en'?'drop an image first.':'이미지를 먼저 놓고 가세요.');return}
@@ -682,10 +700,15 @@ async function submitUpload(){
  try{
    const row=await persistOptimizedArtwork(pendingOptimized,caption);
    const st=store();st.lastUploaded=row;st.myArtworkSlugs=[row.slug,...(st.myArtworkSlugs||[]).filter(x=>x!==row.slug)].slice(0,100);st.myArtworkOwners={...(st.myArtworkOwners||{}),[row.slug]:row.owner_token};saveStore(st);
+   const dropContent=document.querySelector('#dropContent');
+   if(dropContent)dropContent.innerHTML=uploadedPreviewMarkup(row,caption);
    if(pendingPreviewUrl)URL.revokeObjectURL(pendingPreviewUrl);
    pendingOptimized=null;pendingPreviewUrl='';
-   nav('/');
-   setTimeout(()=>toast(lang()==='ko'?'보관 완료. 원본은 저장하지 않았습니다.':'archived. original was not stored.'),60);
+   const captionEl=document.querySelector('#caption');if(captionEl)captionEl.value='';
+   if(human)human.checked=false;
+   const fileEl=document.querySelector('#file');if(fileEl)fileEl.value='';
+   btn.disabled=false;btn.textContent=copy[lang()].leave;
+   toast(lang()==='ko'?'보관 완료. 계속 남길 수 있습니다.':'archived. you can leave another one.');
  }catch(err){
    toast(err.message||'upload failed');
    btn.disabled=false;btn.textContent=copy[lang()].leave;
