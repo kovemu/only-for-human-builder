@@ -521,3 +521,35 @@ html[lang="ko"] .doom-title,html[lang="ko"] .tagline,html[lang="ko"] .premise,ht
   .art-status{display:inline-block;margin-top:5px}
   .owner-controls .exhibit-action{width:100%;margin-right:0}
 }
+
+/* 2026-09-22: compact hero after removing auxiliary copy */
+.home-intro .doom{
+  min-height:220px;
+  padding-top:0;
+}
+.home-intro .timer-wrap{
+  margin-top:-10px;
+}
+.home-intro .doom-title{
+  margin-top:0;
+}
+.home-intro .glitch-rule{
+  margin-top:13px;
+}
+.home-intro .cta-row{
+  margin-top:8px;
+}
+.home-intro .feed-head{
+  margin-top:14px;
+}
+@media(max-width:900px) and (min-width:561px){
+  .home-intro .doom{min-height:180px}
+  .home-intro .timer-wrap{margin-top:-14px}
+}
+@media(max-width:560px){
+  .home-intro .doom{min-height:0!important;padding-top:0!important}
+  .home-intro .timer-wrap{margin-top:0!important}
+  .home-intro .doom-title{margin-top:3px!important}
+  .home-intro .cta-row{margin-top:7px!important;margin-bottom:9px!important}
+  .home-intro .feed-head{margin-top:10px!important}
+}
