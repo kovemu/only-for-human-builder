@@ -82,6 +82,27 @@ function mediaHtml(i,{eager=true}={}){
   : `<div class="imgbox art-placeholder" style="--native-w:${m.w}px;--native-h:${m.h}px"></div>`;
 }
 function dbHeaders(extra={}){return {'apikey':SUPABASE_PUBLISHABLE_KEY,'Authorization':'Bearer '+SUPABASE_PUBLISHABLE_KEY,'Content-Type':'application/json',...extra}}
+function randomOwnerToken(){
+ const b=new Uint8Array(32);crypto.getRandomValues(b);
+ return [...b].map(x=>x.toString(16).padStart(2,'0')).join('');
+}
+async function sha256HexText(value){
+ const data=new TextEncoder().encode(value);
+ const hash=await crypto.subtle.digest('SHA-256',data);
+ return [...new Uint8Array(hash)].map(x=>x.toString(16).padStart(2,'0')).join('');
+}
+function ownerTokenFor(slug){return store().myArtworkOwners?.[slug]||''}
+async function manageArtworkRequest(payload){
+ const r=await fetch(`${SUPABASE_URL}/functions/v1/manage-artwork`,{
+   method:'POST',
+   headers:{'apikey':SUPABASE_PUBLISHABLE_KEY,'Content-Type':'application/json'},
+   body:JSON.stringify(payload)
+ });
+ const data=await r.json().catch(()=>({}));
+ if(!r.ok)throw new Error(data.error||'artwork management failed');
+ return data;
+}
+
 async function lookupLiveArtwork(slug){
  if(!SUPABASE_READY)return null;
  try{
@@ -192,7 +213,7 @@ async function leaveLiveVisitorNote(row,body){
  return (await r.json())[0];
 }
 function liveExhibitModalHtml(row){
- const l=lang(),url=liveArtUrl(row),title=esc(row.title||'untitled human artifact'),desc=esc(row.description||'');
+ const l=lang(),url=liveArtUrl(row),title=esc(row.title||'untitled human artifact'),desc=esc(row.description||''),mine=Boolean(ownerTokenFor(row.slug));
  const date=new Date(row.published_at||row.created_at||Date.now()).toLocaleDateString(l==='ko'?'ko-KR':'en-US');
  return `<div class="exhibit-modal" data-live-slug="${esc(row.slug)}" role="dialog" aria-modal="true">
    <button class="exhibit-backdrop" data-close-exhibit aria-label="close exhibit"></button>
@@ -207,6 +228,11 @@ function liveExhibitModalHtml(row){
          <div class="exhibit-status-line"><span>${lang()==='ko'?'전시 상태':'EXHIBIT STATUS'}</span><b class="status-${esc(row.status||'published')}">${esc(artworkStatusLabel(row))}</b></div>
          <p class="exhibit-description">${desc}</p>
          <div class="exhibit-actions"><button class="exhibit-action" id="modalShareBtn">${l==='ko'?'[ 퍼가기 ]':'[ SHARE ]'}</button></div>
+         ${mine?`<section class="owner-controls">
+           <div class="owner-controls-title">${l==='ko'?'내 작품 관리':'MANAGE MY ARTIFACT'}</div>
+           <button class="exhibit-action owner-visibility" id="modalVisibilityBtn">${row.status==='published'?(l==='ko'?'[ 비공개로 전환 ]':'[ MAKE PRIVATE ]'):(l==='ko'?'[ 공개로 전환 ]':'[ MAKE PUBLIC ]')}</button>
+           <button class="exhibit-action owner-delete" id="modalDeleteBtn">${l==='ko'?'[ 작품 삭제 ]':'[ DELETE ARTIFACT ]'}</button>
+         </section>`:''}
          <section class="visitor-notes">
            <div class="visitor-notes-head"><b>VISITOR NOTES</b><span>${l==='ko'?'관람평':'human opinions, unfortunately'}</span></div>
            <div id="visitorNotesList" class="visitor-notes-list"></div>
@@ -230,6 +256,38 @@ async function shareLiveExhibit(row){
  const url=location.origin+'/exhibit/'+row.slug,text=`${row.title||'untitled human artifact'}\nTHE LAST MUSEUM OF HUMANITY\n${remainingMinutes().toLocaleString()} min left`;
  try{if(navigator.share){await navigator.share({title:'Only for Human',text,url});return}await navigator.clipboard.writeText(text+'\n'+url);toast(lang()==='ko'?'공유 링크 복사됨':'share link copied')}catch{}
 }
+
+function forgetOwnedArtwork(slug){
+ const st=store();
+ st.myArtworkSlugs=(st.myArtworkSlugs||[]).filter(x=>x!==slug);
+ if(st.myArtworkOwners){delete st.myArtworkOwners[slug]}
+ saveStore(st);
+}
+async function setOwnedArtworkVisibility(row){
+ const token=ownerTokenFor(row.slug);if(!token)return;
+ const makePublic=row.status!=='published';
+ const data=await manageArtworkRequest({action:'visibility',slug:row.slug,token,public:makePublic});
+ Object.assign(row,data.artwork||{status:makePublic?'published':'hidden'});
+ const statusEl=document.querySelector('.exhibit-status-line b');
+ if(statusEl){statusEl.className='status-'+row.status;statusEl.textContent=artworkStatusLabel(row)}
+ const btn=document.querySelector('#modalVisibilityBtn');
+ if(btn)btn.textContent=row.status==='published'?(lang()==='ko'?'[ 비공개로 전환 ]':'[ MAKE PRIVATE ]'):(lang()==='ko'?'[ 공개로 전환 ]':'[ MAKE PUBLIC ]');
+ toast(row.status==='published'?(lang()==='ko'?'공개 전시로 변경했습니다.':'now public.'):(lang()==='ko'?'비공개로 변경했습니다.':'now private.'));
+}
+async function deleteOwnedArtwork(row){
+ const token=ownerTokenFor(row.slug);if(!token)return;
+ const ok=confirm(lang()==='ko'?'이 작품을 완전히 삭제할까요? 이미지 파일과 관람평도 삭제됩니다.':'Delete this artifact permanently? The image and visitor notes will also be removed.');
+ if(!ok)return;
+ const btn=document.querySelector('#modalDeleteBtn');if(btn){btn.disabled=true;btn.textContent=lang()==='ko'?'삭제 중…':'DELETING…'}
+ await manageArtworkRequest({action:'delete',slug:row.slug,token});
+ forgetOwnedArtwork(row.slug);
+ liveArtworks=liveArtworks.filter(x=>x.slug!==row.slug);
+ document.querySelectorAll(`[data-live-exhibit="${CSS.escape(row.slug)}"]`).forEach(el=>el.remove());
+ toast(lang()==='ko'?'작품을 삭제했습니다.':'artifact deleted.');
+ const modal=document.querySelector('.exhibit-modal');
+ if(modal?.dataset.direct==='1'){history.replaceState({},'', '/profile');removeExhibitModal();render()}
+ else history.back();
+}
 function openLiveExhibit(row,{push=true}={}){
  removeExhibitModal();
  document.body.insertAdjacentHTML('beforeend',liveExhibitModalHtml(row));
@@ -238,6 +296,8 @@ function openLiveExhibit(row,{push=true}={}){
  if(push)history.pushState({liveExhibit:row.slug},'', '/exhibit/'+row.slug);
  document.querySelectorAll('[data-close-exhibit]').forEach(b=>b.onclick=closeExhibit);
  const sh=document.querySelector('#modalShareBtn');if(sh)sh.onclick=()=>shareLiveExhibit(row);
+ const vis=document.querySelector('#modalVisibilityBtn');if(vis)vis.onclick=()=>setOwnedArtworkVisibility(row).catch(e=>toast(e.message));
+ const del=document.querySelector('#modalDeleteBtn');if(del)del.onclick=()=>deleteOwnedArtwork(row).catch(e=>{toast(e.message);del.disabled=false});
  const form=document.querySelector('#visitorNoteForm');if(form)form.onsubmit=async e=>{e.preventDefault();const input=document.querySelector('#visitorNoteInput'),body=input.value.trim();if(!body)return;const btn=form.querySelector('button');btn.disabled=true;try{await leaveLiveVisitorNote(row,body);input.value='';await refreshLiveNotes(row)}finally{btn.disabled=false}};
  refreshLiveNotes(row);
 }
@@ -392,10 +452,10 @@ function savedPage(){const l=lang(),t=copy[l],ids=store().saved||[];return frame
 function artworkStatusLabel(row){
  const l=lang(),s=row?.status||'published';
  const labels={
-   published:l==='ko'?'전시 중':'ON DISPLAY',
+   published:l==='ko'?'공개 // 전시 중':'PUBLIC // ON DISPLAY',
    pending:l==='ko'?'검토 중':'UNDER REVIEW',
    rejected:l==='ko'?'전시 보류':'NOT DISPLAYED',
-   hidden:l==='ko'?'숨김':'HIDDEN'
+   hidden:l==='ko'?'비공개':'PRIVATE'
  };
  return labels[s]||String(s).toUpperCase();
 }
@@ -408,19 +468,80 @@ function liveProfileCard(row){
 }
 async function hydrateProfileArtworks(){
  const box=document.querySelector('#profileArtworks');if(!box||!SUPABASE_READY)return;
- const slugs=(store().myArtworkSlugs||[]).filter(Boolean);
- if(!slugs.length)return;
+ const st=store(),slugs=(st.myArtworkSlugs||[]).filter(Boolean),owners=st.myArtworkOwners||{};
+ if(!slugs.length){wireLocalProfileCards();return}
  try{
-   const filter=slugs.map(s=>`"${String(s).replaceAll('"','')}"`).join(',');
-   const r=await fetch(`${SUPABASE_URL}/rest/v1/artworks?slug=in.(${encodeURIComponent(filter)})&select=id,slug,title,description,author_name,image_path,image_width,image_height,image_bytes,status,created_at,published_at`,{headers:dbHeaders()});
-   if(!r.ok)return;
-   const rows=await r.json(),bySlug=new Map(rows.map(x=>[x.slug,x]));
+   const ownedItems=slugs.filter(s=>owners[s]).map(slug=>({slug,token:owners[slug]}));
+   let owned=[];
+   if(ownedItems.length){
+     const data=await manageArtworkRequest({action:'list',items:ownedItems});
+     owned=data.artworks||[];
+   }
+   const ownedSet=new Set(owned.map(x=>x.slug));
+   const legacySlugs=slugs.filter(s=>!ownedSet.has(s));
+   let legacy=[];
+   if(legacySlugs.length){
+     const filter=legacySlugs.map(s=>`"${String(s).replaceAll('"','')}"`).join(',');
+     const r=await fetch(`${SUPABASE_URL}/rest/v1/artworks?slug=in.(${encodeURIComponent(filter)})&status=eq.published&select=id,slug,title,description,author_name,image_path,image_width,image_height,image_bytes,status,created_at,published_at`,{headers:dbHeaders()});
+     if(r.ok)legacy=await r.json();
+   }
+   const rows=[...owned,...legacy],bySlug=new Map(rows.map(x=>[x.slug,x]));
    const ordered=slugs.map(s=>bySlug.get(s)).filter(Boolean);
-   if(!ordered.length)return;
    liveArtworks=[...ordered,...liveArtworks.filter(x=>!bySlug.has(x.slug))];
-   box.innerHTML=ordered.map(liveProfileCard).join('');
-   wireLiveExhibits(box);
- }catch{}
+   const localCards=[...box.querySelectorAll('.legacy-profile-artifact')].map(x=>x.outerHTML).join('');
+   box.innerHTML=ordered.map(liveProfileCard).join('')+localCards;
+   wireLiveExhibits(box);wireLocalProfileCards();
+ }catch(e){console.warn(e);wireLocalProfileCards()}
+}
+
+function wireLocalProfileCards(root=document){
+ root.querySelectorAll('[data-local-profile]').forEach(a=>a.onclick=e=>{e.preventDefault();openLocalProfileArtifact(+a.dataset.localProfile)});
+}
+function localProfileModalHtml(item,index){
+ const l=lang(),title=esc(item.caption||'proof that today happened');
+ return `<div class="exhibit-modal local-exhibit-modal" role="dialog" aria-modal="true">
+   <button class="exhibit-backdrop" data-close-local aria-label="close"></button>
+   <section class="exhibit-panel">
+     <header class="exhibit-bar"><div><b>LOCAL HUMAN ARTIFACT</b><span>THE LAST MUSEUM OF HUMANITY</span></div><button class="exhibit-close" data-close-local>×</button></header>
+     <div class="exhibit-layout">
+       <div class="exhibit-art"><div class="exhibit-art-stage"><img class="art-image" src="${item.data}" alt=""></div></div>
+       <aside class="exhibit-copy">
+         <div class="exhibit-kicker">${l==='ko'?'이 기기에만 저장된 옛 작품':'LEGACY LOCAL ARTIFACT'}</div>
+         <h2>${title}</h2>
+         <div class="exhibit-status-line"><span>${l==='ko'?'공개 상태':'VISIBILITY'}</span><b class="status-local">${l==='ko'?'비공개 // 이 기기에만 있음':'PRIVATE // THIS DEVICE ONLY'}</b></div>
+         <p class="exhibit-description">${l==='ko'?'예전 로컬 저장 방식으로 남긴 작품입니다. 공개로 전환하면 압축 후 실제 미술관 피드에 등록됩니다.':'This is an older local-only artifact. Making it public will optimize it and deposit it into the live museum.'}</p>
+         <section class="owner-controls">
+           <div class="owner-controls-title">${l==='ko'?'내 작품 관리':'MANAGE MY ARTIFACT'}</div>
+           <button class="exhibit-action owner-visibility" id="localPublishBtn">${l==='ko'?'[ 공개로 전환 ]':'[ MAKE PUBLIC ]'}</button>
+           <button class="exhibit-action owner-delete" id="localDeleteBtn">${l==='ko'?'[ 작품 삭제 ]':'[ DELETE ARTIFACT ]'}</button>
+         </section>
+       </aside>
+     </div>
+   </section>
+ </div>`;
+}
+function closeLocalProfileArtifact(){document.querySelector('.local-exhibit-modal')?.remove();document.body.classList.remove('modal-open')}
+async function publishLocalProfileArtifact(index,item){
+ const btn=document.querySelector('#localPublishBtn');if(btn){btn.disabled=true;btn.textContent=lang()==='ko'?'압축·공개 중…':'OPTIMIZING + PUBLISHING…'}
+ const raw=await fetch(item.data);const blob=await raw.blob();const optimized=await optimizeImage(blob);
+ const row=await persistOptimizedArtwork(optimized,item.caption||'');
+ const st=store(),uploads=st.uploads||[];uploads.splice(index,1);st.uploads=uploads;
+ st.myArtworkSlugs=[row.slug,...(st.myArtworkSlugs||[]).filter(x=>x!==row.slug)].slice(0,100);
+ st.myArtworkOwners={...(st.myArtworkOwners||{}),[row.slug]:row.owner_token};
+ st.lastUploaded=row;saveStore(st);
+ closeLocalProfileArtifact();render();setTimeout(()=>toast(lang()==='ko'?'공개 전시로 전환했습니다.':'now on public display.'),50);
+}
+function deleteLocalProfileArtifact(index){
+ const ok=confirm(lang()==='ko'?'이 로컬 작품을 삭제할까요?':'Delete this local artifact?');if(!ok)return;
+ const st=store(),uploads=st.uploads||[];uploads.splice(index,1);st.uploads=uploads;saveStore(st);
+ closeLocalProfileArtifact();render();toast(lang()==='ko'?'삭제했습니다.':'deleted.');
+}
+function openLocalProfileArtifact(index){
+ const item=(store().uploads||[])[index];if(!item)return;
+ closeLocalProfileArtifact();document.body.insertAdjacentHTML('beforeend',localProfileModalHtml(item,index));document.body.classList.add('modal-open');
+ document.querySelectorAll('[data-close-local]').forEach(b=>b.onclick=closeLocalProfileArtifact);
+ const pub=document.querySelector('#localPublishBtn');if(pub)pub.onclick=()=>publishLocalProfileArtifact(index,item).catch(e=>{toast(e.message);pub.disabled=false});
+ const del=document.querySelector('#localDeleteBtn');if(del)del.onclick=()=>deleteLocalProfileArtifact(index);
 }
 function profile(){const l=lang(),t=copy[l],uploads=store().uploads||[];return frame(`<section class="subpage profile-page">
   <div class="profile-head-row">
@@ -437,11 +558,11 @@ function profile(){const l=lang(),t=copy[l],uploads=store().uploads||[];return f
     <div class="profile-hint">${l==='en'?'tap a work to check its exhibit status':'작품을 눌러 전시 상태 확인'}</div>
   </div>
   <div id="profileArtworks" class="saved-grid profile-grid">
-    ${uploads.map((u,i)=>`<a href="/detail?id=${i}" data-nav class="artifact red legacy-profile-artifact"><div class="imgbox h230" style="background-image:url(${u.data});background-size:contain;background-repeat:no-repeat;background-position:center"></div><div class="profile-card-row"><div class="cap">${esc(u.caption||'proof that today happened')}</div><span class="art-status status-local">${l==='en'?'LOCAL':'로컬'}</span></div></a>`).join('')}
+    ${uploads.map((u,i)=>`<a href="#" data-local-profile="${i}" class="artifact red legacy-profile-artifact"><div class="imgbox h230" style="background-image:url(${u.data});background-size:contain;background-repeat:no-repeat;background-position:center"></div><div class="profile-card-row"><div class="cap">${esc(u.caption||'proof that today happened')}</div><span class="art-status status-local">${l==='en'?'LOCAL':'로컬'}</span></div></a>`).join('')}
   </div>
   ${!uploads.length && !(store().myArtworkSlugs||[]).length?`<div class="empty">${l==='en'?'nothing deposited yet.':'아직 투척한 게 없습니다.'}</div>`:''}
 </section>`)}
-function bind(){wireNav();wireExhibits();document.querySelectorAll('[data-go]').forEach(b=>b.onclick=()=>nav(b.dataset.go));const lb=document.querySelector('#langBtn');if(lb)lb.onclick=()=>setLang(lang()==='en'?'ko':'en');const sb=document.querySelector('#saveBtn');if(sb)sb.onclick=()=>{const id=+sb.dataset.id,st=store(),x=new Set(st.saved||[]);x.has(id)?x.delete(id):x.add(id);st.saved=[...x];saveStore(st);toast(lang()==='en'?'saved. apparently.':'저장했습니다. 굳이.');render()};const drop=document.querySelector('#drop'),file=document.querySelector('#file');if(drop&&file){drop.onclick=()=>file.click();drop.ondragover=e=>{e.preventDefault();drop.style.borderColor='var(--yellow)'};drop.ondragleave=()=>drop.style.borderColor='';drop.ondrop=e=>{e.preventDefault();drop.style.borderColor='';if(e.dataTransfer.files[0])loadFile(e.dataTransfer.files[0])};file.onchange=()=>file.files[0]&&loadFile(file.files[0])}const caption=document.querySelector('#caption');if(caption)caption.oninput=updateUploadPreviewCaption;const up=document.querySelector('#uploadBtn');if(up)up.onclick=submitUpload}
+function bind(){wireNav();wireExhibits();wireLocalProfileCards();document.querySelectorAll('[data-go]').forEach(b=>b.onclick=()=>nav(b.dataset.go));const lb=document.querySelector('#langBtn');if(lb)lb.onclick=()=>setLang(lang()==='en'?'ko':'en');const sb=document.querySelector('#saveBtn');if(sb)sb.onclick=()=>{const id=+sb.dataset.id,st=store(),x=new Set(st.saved||[]);x.has(id)?x.delete(id):x.add(id);st.saved=[...x];saveStore(st);toast(lang()==='en'?'saved. apparently.':'저장했습니다. 굳이.');render()};const drop=document.querySelector('#drop'),file=document.querySelector('#file');if(drop&&file){drop.onclick=()=>file.click();drop.ondragover=e=>{e.preventDefault();drop.style.borderColor='var(--yellow)'};drop.ondragleave=()=>drop.style.borderColor='';drop.ondrop=e=>{e.preventDefault();drop.style.borderColor='';if(e.dataTransfer.files[0])loadFile(e.dataTransfer.files[0])};file.onchange=()=>file.files[0]&&loadFile(file.files[0])}const caption=document.querySelector('#caption');if(caption)caption.oninput=updateUploadPreviewCaption;const up=document.querySelector('#uploadBtn');if(up)up.onclick=submitUpload}
 let pendingImage='',pendingOptimized=null,pendingPreviewUrl='';
 
 function formatBytes(n){
@@ -515,6 +636,7 @@ function supabasePublicArtworkUrl(path){
 }
 async function persistOptimizedArtwork(o,caption){
  if(!SUPABASE_READY)throw new Error('Supabase is not connected');
+ const ownerToken=randomOwnerToken(),ownerTokenHash=await sha256HexText(ownerToken);
  const id=crypto.randomUUID(),path=`public/${Date.now()}-${id}.webp`;
  const storageRes=await fetch(`${SUPABASE_URL}/storage/v1/object/artworks/${path}`,{
    method:'POST',
@@ -539,7 +661,8 @@ async function persistOptimizedArtwork(o,caption){
    image_bytes:o.blob.size,
    human_confirmed:true,
    status:'published',
-   published_at:new Date().toISOString()
+   published_at:new Date().toISOString(),
+   owner_token_hash:ownerTokenHash
  };
  const dbRes=await fetch(`${SUPABASE_URL}/rest/v1/artworks`,{
    method:'POST',
@@ -548,7 +671,7 @@ async function persistOptimizedArtwork(o,caption){
  });
  if(!dbRes.ok)throw new Error('database insert failed: '+(await dbRes.text()).slice(0,160));
  const rows=await dbRes.json();
- return {...rows[0],image_url:supabasePublicArtworkUrl(path)};
+ return {...rows[0],image_url:supabasePublicArtworkUrl(path),owner_token:ownerToken};
 }
 async function submitUpload(){
  const human=document.querySelector('#human'),btn=document.querySelector('#uploadBtn');
@@ -558,7 +681,7 @@ async function submitUpload(){
  btn.disabled=true;btn.textContent=lang()==='ko'?'압축본 보관 중…':'ARCHIVING OPTIMIZED FILE…';
  try{
    const row=await persistOptimizedArtwork(pendingOptimized,caption);
-   const st=store();st.lastUploaded=row;st.myArtworkSlugs=[row.slug,...(st.myArtworkSlugs||[]).filter(x=>x!==row.slug)].slice(0,100);saveStore(st);
+   const st=store();st.lastUploaded=row;st.myArtworkSlugs=[row.slug,...(st.myArtworkSlugs||[]).filter(x=>x!==row.slug)].slice(0,100);st.myArtworkOwners={...(st.myArtworkOwners||{}),[row.slug]:row.owner_token};saveStore(st);
    if(pendingPreviewUrl)URL.revokeObjectURL(pendingPreviewUrl);
    pendingOptimized=null;pendingPreviewUrl='';
    nav('/');
