@@ -45,6 +45,7 @@ const sampleMedia=[
  {w:260,h:340,src:''}
 ];
 const preloadCache=new Set();
+let liveArtworks=[];
 function preloadArtwork(index){
  const m=sampleMedia[index%sampleMedia.length];
  if(!m||!m.src||preloadCache.has(m.src))return;
@@ -121,6 +122,136 @@ async function leaveVisitorNote(i,body){
  const row={id:'local-'+Date.now(),author_name:'anonymous human',body,created_at:new Date().toISOString()};
  st.visitorNotes[slug].push(row);saveStore(st);return row;
 }
+
+async function fetchLiveArtworks(limit=40){
+ if(!SUPABASE_READY)return [];
+ try{
+   const q=`${SUPABASE_URL}/rest/v1/artworks?status=eq.published&image_bytes=not.is.null&select=id,slug,title,description,author_name,image_path,image_width,image_height,image_bytes,created_at,published_at&order=published_at.desc&limit=${limit}`;
+   const r=await fetch(q,{headers:dbHeaders()});
+   if(!r.ok)return [];
+   return await r.json();
+ }catch{return []}
+}
+function liveArtUrl(row){return supabasePublicArtworkUrl(row.image_path)}
+function liveArtCard(row,{mobile=false}={}){
+ const url=liveArtUrl(row),title=esc(row.title||'untitled human artifact'),slug=esc(row.slug);
+ if(mobile){
+   return `<a href="/exhibit/${slug}" data-live-exhibit="${slug}" class="artifact stream-item live-artifact">
+     <div class="artwork-card">
+       <div class="art-stage"><img class="art-image" src="${url}" width="${row.image_width||''}" height="${row.image_height||''}" alt="" loading="eager" decoding="async"></div>
+       <div class="cap">&lt;${title}&gt;</div>
+     </div>
+   </a>`;
+ }
+ return `<a href="/exhibit/${slug}" data-live-exhibit="${slug}" class="artifact live-artifact">
+   <div class="imgbox live-imgbox"><img src="${url}" width="${row.image_width||''}" height="${row.image_height||''}" alt="" loading="lazy" decoding="async"></div>
+   <div class="cap">${title}</div>
+ </a>`;
+}
+function wireLiveExhibits(root=document){
+ root.querySelectorAll('[data-live-exhibit]').forEach(a=>a.onclick=e=>{
+   e.preventDefault();
+   const row=liveArtworks.find(x=>x.slug===a.dataset.liveExhibit);
+   if(row)openLiveExhibit(row,{push:true});
+ });
+}
+async function hydrateLiveFeed(){
+ const rows=await fetchLiveArtworks();
+ liveArtworks=rows;
+ if(!rows.length)return;
+ rows.slice(0,12).forEach(r=>{const img=new Image();img.decoding='async';img.src=liveArtUrl(r)});
+ const mobile=document.querySelector('#mobileFeed');
+ if(mobile){
+   mobile.innerHTML=rows.map(r=>liveArtCard(r,{mobile:true})).join('')+mobile.innerHTML;
+   wireLiveExhibits(mobile);
+ }
+ const desktop=document.querySelector('.desktop-gallery');
+ if(desktop){
+   const cols=[[],[],[]];rows.forEach((r,i)=>cols[i%3].push(liveArtCard(r)));
+   desktop.insertAdjacentHTML('afterbegin',`<div class="live-feed-grid">
+     <div class="col">${cols[0].join('')}</div>
+     <div class="col center-col">${cols[1].join('')}</div>
+     <div class="col right-col">${cols[2].join('')}</div>
+   </div>`);
+   wireLiveExhibits(desktop);
+ }
+}
+async function getLiveVisitorNotes(row){
+ try{
+   const r=await fetch(`${SUPABASE_URL}/rest/v1/visitor_notes?artwork_id=eq.${row.id}&status=eq.visible&select=id,author_name,body,created_at&order=created_at.asc`,{headers:dbHeaders()});
+   return r.ok?await r.json():[];
+ }catch{return []}
+}
+async function leaveLiveVisitorNote(row,body){
+ body=String(body||'').trim().slice(0,180);if(!body)throw Error('empty note');
+ const r=await fetch(`${SUPABASE_URL}/rest/v1/visitor_notes`,{
+   method:'POST',headers:dbHeaders({'Prefer':'return=representation'}),
+   body:JSON.stringify({artwork_id:row.id,author_name:'anonymous human',body,status:'visible'})
+ });
+ if(!r.ok)throw new Error('note failed');
+ return (await r.json())[0];
+}
+function liveExhibitModalHtml(row){
+ const l=lang(),url=liveArtUrl(row),title=esc(row.title||'untitled human artifact'),desc=esc(row.description||'');
+ const date=new Date(row.published_at||row.created_at||Date.now()).toLocaleDateString(l==='ko'?'ko-KR':'en-US');
+ return `<div class="exhibit-modal" data-live-slug="${esc(row.slug)}" role="dialog" aria-modal="true">
+   <button class="exhibit-backdrop" data-close-exhibit aria-label="close exhibit"></button>
+   <section class="exhibit-panel">
+     <header class="exhibit-bar"><div><b>HUMAN ARTIFACT</b><span>THE LAST MUSEUM OF HUMANITY</span></div><button class="exhibit-close" data-close-exhibit>×</button></header>
+     <div class="exhibit-layout">
+       <div class="exhibit-art"><div class="exhibit-art-stage"><img class="art-image" src="${url}" alt="" decoding="async"></div></div>
+       <aside class="exhibit-copy">
+         <div class="exhibit-kicker">${l==='ko'?'인류 최후의 미술관':'THE LAST MUSEUM OF HUMANITY'}</div>
+         <h2>${title}</h2>
+         <div class="exhibit-meta">${esc(row.author_name||'anonymous human')} · ${date}</div>
+         <p class="exhibit-description">${desc}</p>
+         <div class="exhibit-actions"><button class="exhibit-action" id="modalShareBtn">${l==='ko'?'[ 퍼가기 ]':'[ SHARE ]'}</button></div>
+         <section class="visitor-notes">
+           <div class="visitor-notes-head"><b>VISITOR NOTES</b><span>${l==='ko'?'관람평':'human opinions, unfortunately'}</span></div>
+           <div id="visitorNotesList" class="visitor-notes-list"></div>
+           <form id="visitorNoteForm" class="visitor-note-form">
+             <input id="visitorNoteInput" maxlength="180" autocomplete="off" placeholder="${l==='ko'?'한 줄 관람평 남기기':'leave one short visitor note'}">
+             <button type="submit">${l==='ko'?'남기기':'LEAVE NOTE'}</button>
+           </form>
+         </section>
+       </aside>
+     </div>
+   </section>
+ </div>`;
+}
+async function refreshLiveNotes(row){
+ const box=document.querySelector('#visitorNotesList');if(!box)return;
+ box.innerHTML='<div class="notes-loading">loading human opinions…</div>';
+ const notes=await getLiveVisitorNotes(row);
+ if(document.querySelector('.exhibit-modal'))box.innerHTML=notes.length?notes.map(noteHtml).join(''):`<div class="notes-empty">${lang()==='ko'?'아직 관람평이 없습니다. 첫 번째 인간이 되어보세요.':'no visitor notes yet. be the first human.'}</div>`;
+}
+async function shareLiveExhibit(row){
+ const url=location.origin+'/exhibit/'+row.slug,text=`${row.title||'untitled human artifact'}\nTHE LAST MUSEUM OF HUMANITY\n${remainingMinutes().toLocaleString()} min left`;
+ try{if(navigator.share){await navigator.share({title:'Only for Human',text,url});return}await navigator.clipboard.writeText(text+'\n'+url);toast(lang()==='ko'?'공유 링크 복사됨':'share link copied')}catch{}
+}
+function openLiveExhibit(row,{push=true}={}){
+ removeExhibitModal();
+ document.body.insertAdjacentHTML('beforeend',liveExhibitModalHtml(row));
+ const m=document.querySelector('.exhibit-modal');m.dataset.direct=push?'0':'1';
+ document.body.classList.add('modal-open');
+ if(push)history.pushState({liveExhibit:row.slug},'', '/exhibit/'+row.slug);
+ document.querySelectorAll('[data-close-exhibit]').forEach(b=>b.onclick=closeExhibit);
+ const sh=document.querySelector('#modalShareBtn');if(sh)sh.onclick=()=>shareLiveExhibit(row);
+ const form=document.querySelector('#visitorNoteForm');if(form)form.onsubmit=async e=>{e.preventDefault();const input=document.querySelector('#visitorNoteInput'),body=input.value.trim();if(!body)return;const btn=form.querySelector('button');btn.disabled=true;try{await leaveLiveVisitorNote(row,body);input.value='';await refreshLiveNotes(row)}finally{btn.disabled=false}};
+ refreshLiveNotes(row);
+}
+async function openExhibitRoute(slug){
+ if(/^sample-\d{3}$/.test(slug)){openExhibit(exhibitIndex(slug),{push:false});return}
+ let row=liveArtworks.find(x=>x.slug===slug);
+ if(!row){
+   try{
+     const r=await fetch(`${SUPABASE_URL}/rest/v1/artworks?slug=eq.${encodeURIComponent(slug)}&status=eq.published&select=id,slug,title,description,author_name,image_path,image_width,image_height,image_bytes,created_at,published_at&limit=1`,{headers:dbHeaders()});
+     if(r.ok)row=(await r.json())[0];
+   }catch{}
+ }
+ if(row)openLiveExhibit(row,{push:false});
+}
+
 function digitHtml(d, small=false){const bits=PIXELS[+d];return `<span class="digit" style="--px:${small?'8px':'17px'}">${[...bits].map(b=>`<i class="px ${b==='1'?'on':''}"></i>`).join('')}</span>`}
 function timerHtml(){const total=Math.max(0,Math.ceil((DEADLINE-Date.now())/1000));const mins=Math.floor(total/60);const sec=String(total%60).padStart(2,'0');return `<div class="timer-wrap"><div id="mins" class="pixel-number">${String(mins).split('').map((d,i)=>`<span style="--dx:${[0,3,-2,4,-3,1][i%6]}px;--dy:${[0,-4,2,-2,3,0][i%6]}px">${digitHtml(d)}</span>`).join('')}</div><div class="seconds-unit"><div class="seconds"><span class="colon">:</span><div id="secs" class="pixel-number">${sec.split('').map(d=>digitHtml(d,true)).join('')}</div></div><div class="min-label">min</div></div></div>`}
 let timerId,feedObserver,feedCursor=0;
@@ -299,7 +430,7 @@ async function optimizeImage(file){
 function uploadPreviewMarkup(o){
  const l=lang(),caption=document.querySelector('#caption')?.value?.trim()||'';
  return `<div class="upload-feed-preview">
-   <div class="upload-preview-label">${l==='ko'?'피드 미리보기 // 업로드될 실제 파일':'FEED PREVIEW // ACTUAL UPLOAD FILE'}</div>
+   <div class="upload-preview-label">${l==='ko'?'피드 미리보기 // 아직 업로드 전':'FEED PREVIEW // NOT UPLOADED YET'}</div>
    <div class="upload-preview-stage"><img src="${pendingPreviewUrl}" alt=""></div>
    <div class="upload-preview-caption" id="uploadPreviewCaption">${esc(caption||(l==='ko'?'제목 없음 // 아직 인간':'untitled // still human'))}</div>
    <div class="upload-opt-stats">${o.sourceWidth}×${o.sourceHeight} → ${o.width}×${o.height} // ${formatBytes(o.sourceBytes)} → ${formatBytes(o.blob.size)} // WEBP Q${Math.round(o.quality*100)}</div>
@@ -391,7 +522,7 @@ function render(){
  document.documentElement.lang=lang();
  document.querySelector('#app').innerHTML=exhibitMatch?home():p==='/upload'?upload():p==='/saved'?savedPage():p==='/profile'?profile():p==='/detail'?detail():home();
  bind();
- if(p==='/'||exhibitMatch){startTimer();setupInfiniteFeed();setupMobilePaging()}
- if(exhibitMatch)requestAnimationFrame(()=>openExhibit(exhibitIndex(exhibitMatch[1]),{push:false}));
+ if(p==='/'||exhibitMatch){startTimer();setupInfiniteFeed();setupMobilePaging();hydrateLiveFeed()}
+ if(exhibitMatch)requestAnimationFrame(()=>openExhibitRoute(exhibitMatch[1]));
 }
 render();
