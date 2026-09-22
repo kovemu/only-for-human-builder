@@ -166,10 +166,18 @@ function scatterProfile(row,index=0){
  const tilt=[0,0,0,1,-1,0][(h>>>9)%6];
  return {span,nudge,tilt};
 }
+function frameVariant(row,index=0){
+ const key=String(row.slug||'')+'|frame|'+index;
+ let h=2166136261;
+ for(let i=0;i<key.length;i++){h^=key.charCodeAt(i);h=Math.imul(h,16777619)}
+ h=h>>>0;
+ const variants=['frame-black','frame-walnut','frame-simple','frame-gold','frame-black','frame-gold-mat','frame-simple','frame-walnut'];
+ return variants[h%variants.length];
+}
 function liveArtCard(row,{mobile=false,scatterIndex=0}={}){
- const url=liveArtUrl(row),title=esc(row.title||'untitled human artifact'),slug=esc(row.slug);
+ const url=liveArtUrl(row),title=esc(row.title||'untitled human artifact'),slug=esc(row.slug),frame=frameVariant(row,scatterIndex);
  if(mobile){
-   return `<a href="/exhibit/${slug}" data-live-exhibit="${slug}" class="artifact stream-item live-artifact">
+   return `<a href="/exhibit/${slug}" data-live-exhibit="${slug}" class="artifact stream-item live-artifact ${frame}">
      <div class="artwork-card">
        <div class="art-stage"><img class="art-image" src="${url}" width="${row.image_width||''}" height="${row.image_height||''}" alt="" loading="eager" decoding="async"></div>
        <div class="cap">&lt;${title}&gt;</div>
@@ -177,7 +185,7 @@ function liveArtCard(row,{mobile=false,scatterIndex=0}={}){
    </a>`;
  }
  const p=scatterProfile(row,scatterIndex);
- return `<a href="/exhibit/${slug}" data-live-exhibit="${slug}" class="artifact live-artifact scatter-card" style="--scatter-span:${p.span};--scatter-nudge:${p.nudge}px;--scatter-tilt:${p.tilt}deg">
+ return `<a href="/exhibit/${slug}" data-live-exhibit="${slug}" class="artifact live-artifact scatter-card ${frame}" style="--scatter-span:${p.span};--scatter-nudge:${p.nudge}px;--scatter-tilt:${p.tilt}deg">
    <div class="live-imgbox"><img src="${url}" width="${row.image_width||''}" height="${row.image_height||''}" alt="" loading="lazy" decoding="async"></div>
    <div class="cap">${title}</div>
  </a>`;
@@ -221,14 +229,14 @@ async function leaveLiveVisitorNote(row,body){
  return (await r.json())[0];
 }
 function liveExhibitModalHtml(row){
- const l=lang(),url=liveArtUrl(row),title=esc(row.title||'untitled human artifact'),desc=esc(row.description||''),mine=Boolean(ownerTokenFor(row.slug));
+ const l=lang(),url=liveArtUrl(row),title=esc(row.title||'untitled human artifact'),desc=esc(row.description||''),mine=Boolean(ownerTokenFor(row.slug)),frame=frameVariant(row,0);
  const date=new Date(row.published_at||row.created_at||Date.now()).toLocaleDateString(l==='ko'?'ko-KR':'en-US');
  return `<div class="exhibit-modal" data-live-slug="${esc(row.slug)}" role="dialog" aria-modal="true">
    <button class="exhibit-backdrop" data-close-exhibit aria-label="close exhibit"></button>
    <section class="exhibit-panel">
      <header class="exhibit-bar"><div><b>HUMAN ARTIFACT</b><span>THE LAST MUSEUM OF HUMANITY</span></div><button class="exhibit-close" data-close-exhibit>×</button></header>
      <div class="exhibit-layout">
-       <div class="exhibit-art"><div class="exhibit-art-stage"><img class="art-image" src="${url}" alt="" decoding="async"></div></div>
+       <div class="exhibit-art"><div class="exhibit-art-stage ${frame}"><img class="art-image" src="${url}" alt="" decoding="async"></div></div>
        <aside class="exhibit-copy">
          <div class="exhibit-kicker">${l==='ko'?'인류 최후의 미술관':'THE LAST MUSEUM OF HUMANITY'}</div>
          <h2>${title}</h2>
