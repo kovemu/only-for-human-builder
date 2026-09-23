@@ -1399,3 +1399,120 @@ html,body{
     border-width:26px!important;
   }
 }
+
+
+/* OFH ornate frame v3 — frame hugs the artwork, no cream mat gap, vector quality */
+.live-artifact.frame-asset-gold .live-imgbox{
+  padding:0!important;
+  border:0!important;
+  background:transparent!important;
+  box-shadow:none!important;
+  overflow:visible!important;
+}
+.live-artifact.frame-asset-gold .live-imgbox::before,
+.live-artifact.frame-asset-gold .live-imgbox::after{display:none!important}
+.live-artifact.frame-asset-gold .live-imgbox img{
+  display:block!important;
+  box-sizing:border-box!important;
+  width:100%!important;
+  height:auto!important;
+  max-width:100%!important;
+  max-height:none!important;
+  margin:0!important;
+  padding:0!important;
+  background:transparent!important;
+  object-fit:contain!important;
+  border-style:solid!important;
+  border-color:transparent!important;
+  border-width:clamp(34px,3.8vw,58px)!important;
+  border-image-source:url("./assets/frame-gold-slice-v3.svg")!important;
+  border-image-slice:90!important;
+  border-image-width:1!important;
+  border-image-outset:0!important;
+  border-image-repeat:round!important;
+  box-shadow:0 14px 28px rgba(69,45,7,.17)!important;
+}
+.live-artifact.frame-asset-gold .cap{
+  margin-top:12px!important;
+  border-color:#c5a55e!important;
+  background:#fbf6e9!important;
+}
+
+/* modal */
+.exhibit-art-stage.frame-asset-gold{
+  padding:0!important;
+  background:transparent!important;
+  box-shadow:none!important;
+  overflow:visible!important;
+  aspect-ratio:auto!important;
+}
+.exhibit-art-stage.frame-asset-gold::before,
+.exhibit-art-stage.frame-asset-gold::after{display:none!important}
+.exhibit-art-stage.frame-asset-gold .art-image{
+  display:block!important;
+  position:static!important;
+  box-sizing:border-box!important;
+  width:auto!important;
+  height:auto!important;
+  max-width:calc(100% - 48px)!important;
+  max-height:calc(100% - 48px)!important;
+  margin:0!important;
+  padding:0!important;
+  background:transparent!important;
+  object-fit:contain!important;
+  border-style:solid!important;
+  border-color:transparent!important;
+  border-width:46px!important;
+  border-image-source:url("./assets/frame-gold-slice-v3.svg")!important;
+  border-image-slice:90!important;
+  border-image-width:1!important;
+  border-image-outset:0!important;
+  border-image-repeat:round!important;
+  box-shadow:0 16px 32px rgba(69,45,7,.17)!important;
+}
+
+@media(max-width:560px){
+  .mobile-feed .live-artifact.frame-asset-gold .art-stage{
+    width:100%!important;
+    height:68svh!important;
+    padding:0!important;
+    background:transparent!important;
+    box-shadow:none!important;
+    overflow:visible!important;
+    display:flex!important;
+    align-items:center!important;
+    justify-content:center!important;
+  }
+  .mobile-feed .live-artifact.frame-asset-gold .art-stage::before,
+  .mobile-feed .live-artifact.frame-asset-gold .art-stage::after{display:none!important}
+  .mobile-feed .live-artifact.frame-asset-gold .art-image{
+    display:block!important;
+    position:static!important;
+    box-sizing:border-box!important;
+    width:auto!important;
+    height:auto!important;
+    max-width:calc(100% - 10px)!important;
+    max-height:68svh!important;
+    margin:0 auto!important;
+    padding:0!important;
+    background:transparent!important;
+    object-fit:contain!important;
+    border-style:solid!important;
+    border-color:transparent!important;
+    border-width:32px!important;
+    border-image-source:url("./assets/frame-gold-slice-v3.svg")!important;
+    border-image-slice:90!important;
+    border-image-width:1!important;
+    border-image-outset:0!important;
+    border-image-repeat:round!important;
+    box-shadow:0 10px 20px rgba(69,45,7,.16)!important;
+  }
+  .mobile-feed .live-artifact.frame-asset-gold .cap{
+    margin-top:10px!important;
+  }
+  .exhibit-art-stage.frame-asset-gold .art-image{
+    max-width:calc(100% - 24px)!important;
+    max-height:calc(100% - 24px)!important;
+    border-width:32px!important;
+  }
+}
