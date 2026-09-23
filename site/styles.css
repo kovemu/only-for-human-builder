@@ -2109,3 +2109,152 @@ html,body{
   .mobile-feed .frame-asset-gold .museum-frame-v6{--mf:18px!important}
   .exhibit-art-stage.frame-asset-gold .museum-frame-v6{--mf:20px!important}
 }
+
+
+/* OFH frame v6.2 — embedded crop assets + modal containment repair */
+.frame-asset-gold .museum-frame-v6{
+  overflow:hidden!important;
+  background:transparent!important;
+}
+.frame-asset-gold .museum-frame-v6 > .frame-piece{
+  background-size:100% 100%!important;
+  background-position:center!important;
+  background-repeat:no-repeat!important;
+}
+
+/* Desktop exhibit modal: frame + artwork must fit completely inside the left gallery bay. */
+@media(min-width:701px){
+  .exhibit-panel{
+    height:min(820px,calc(100dvh - 32px))!important;
+    max-height:calc(100dvh - 32px)!important;
+  }
+  .exhibit-layout{
+    min-height:0!important;
+    overflow:hidden!important;
+  }
+  .exhibit-art{
+    min-height:0!important;
+    overflow:hidden!important;
+    padding:20px!important;
+  }
+  .exhibit-art-stage{
+    min-width:0!important;
+    min-height:0!important;
+    width:100%!important;
+    height:100%!important;
+    overflow:hidden!important;
+    display:flex!important;
+    align-items:center!important;
+    justify-content:center!important;
+  }
+  .exhibit-art-stage.frame-asset-gold .museum-frame-v6{
+    --mf:30px!important;
+    display:inline-grid!important;
+    width:auto!important;
+    max-width:100%!important;
+    max-height:100%!important;
+    margin:auto!important;
+    flex:0 1 auto!important;
+  }
+  .exhibit-art-stage.frame-asset-gold .museum-frame-v6 > .frame-art{
+    display:block!important;
+    width:auto!important;
+    height:auto!important;
+    max-width:min(100%,720px)!important;
+    max-height:calc(100dvh - 190px)!important;
+    object-fit:contain!important;
+  }
+  .exhibit-art-stage:not(.frame-asset-gold) .art-image{
+    display:block!important;
+    width:auto!important;
+    height:auto!important;
+    max-width:100%!important;
+    max-height:calc(100dvh - 125px)!important;
+    object-fit:contain!important;
+  }
+}
+
+/* Phone exhibit modal: one scrolling column. Never let artwork float over metadata/actions. */
+@media(max-width:700px){
+  .exhibit-modal{padding:0!important}
+  .exhibit-panel{
+    width:100vw!important;
+    height:100dvh!important;
+    max-height:100dvh!important;
+    overflow:hidden!important;
+  }
+  .exhibit-layout{
+    display:block!important;
+    height:auto!important;
+    min-height:0!important;
+    overflow-y:auto!important;
+    overflow-x:hidden!important;
+    -webkit-overflow-scrolling:touch;
+  }
+  .exhibit-art{
+    display:block!important;
+    width:100%!important;
+    height:auto!important;
+    min-height:0!important;
+    padding:14px 14px 18px!important;
+    overflow:hidden!important;
+    border-right:0!important;
+  }
+  .exhibit-art-stage{
+    display:flex!important;
+    align-items:center!important;
+    justify-content:center!important;
+    width:100%!important;
+    height:auto!important;
+    min-height:0!important;
+    max-height:none!important;
+    overflow:hidden!important;
+  }
+  .exhibit-art-stage.frame-asset-gold .museum-frame-v6{
+    --mf:17px!important;
+    display:inline-grid!important;
+    width:auto!important;
+    max-width:min(86vw,320px)!important;
+    max-height:none!important;
+    margin:0 auto!important;
+    flex:0 1 auto!important;
+  }
+  .exhibit-art-stage.frame-asset-gold .museum-frame-v6 > .frame-art{
+    display:block!important;
+    width:auto!important;
+    height:auto!important;
+    max-width:calc(86vw - 34px)!important;
+    max-height:52svh!important;
+    object-fit:contain!important;
+  }
+  .exhibit-art-stage:not(.frame-asset-gold) .art-image{
+    display:block!important;
+    width:auto!important;
+    height:auto!important;
+    max-width:calc(100vw - 36px)!important;
+    max-height:52svh!important;
+    object-fit:contain!important;
+  }
+  .exhibit-copy{
+    position:relative!important;
+    z-index:1!important;
+    min-height:0!important;
+    height:auto!important;
+    padding:16px 14px 18px!important;
+    overflow:visible!important;
+    background:var(--museum-paper)!important;
+  }
+  .visitor-notes{
+    min-height:220px!important;
+    overflow:visible!important;
+  }
+  .visitor-notes-list{
+    max-height:none!important;
+    overflow:visible!important;
+  }
+  .visitor-note-form{
+    position:static!important;
+    bottom:auto!important;
+    background:transparent!important;
+  }
+}
