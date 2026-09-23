@@ -2934,3 +2934,93 @@ html,body{
 @media(max-width:700px){
   .museum-wall-viewport.is-ring-loading::after{display:none!important}
 }
+
+
+/* OFH header/auth cleanup — no status line, account actions live on the right */
+.topbar{
+  display:flex!important;
+  grid-template-columns:none!important;
+  align-items:center!important;
+  gap:14px!important;
+  min-height:44px!important;
+}
+.topbar .brand{flex:0 0 auto!important}
+.topbar-actions{
+  margin-left:auto!important;
+  display:flex!important;
+  align-items:center!important;
+  justify-content:flex-end!important;
+  gap:15px!important;
+  min-width:0!important;
+}
+.topbar .navlink,.topbar .lang{
+  border:0!important;
+  background:transparent!important;
+  white-space:nowrap!important;
+}
+.topbar .auth-entry{color:#5e574d!important}
+.topbar .status{display:none!important}
+
+/* Login / signup stays in one museum-style modal. */
+.auth-modal{
+  position:fixed;inset:0;z-index:2200;
+  display:grid;place-items:center;padding:20px;
+}
+.auth-backdrop{
+  position:absolute;inset:0;border:0;
+  background:rgba(25,22,18,.58);
+  backdrop-filter:blur(3px);
+}
+.auth-panel{
+  position:relative;
+  width:min(430px,calc(100vw - 30px));
+  background:var(--museum-paper,#fffdf7);
+  color:var(--museum-ink,#161616);
+  border:1px solid #cfc5b5;
+  box-shadow:0 18px 55px rgba(30,24,16,.23);
+}
+.auth-bar{
+  height:46px;padding:0 14px;
+  display:flex;align-items:center;justify-content:space-between;
+  border-bottom:1px solid #d7cdbd;
+  font-size:11px;letter-spacing:.04em;
+}
+.auth-close{border:0;background:none;color:#171717;font-size:28px;line-height:1}
+.auth-body{padding:22px 22px 24px}
+.auth-kicker{font-size:9px;color:#857b6d;margin-bottom:6px}
+.auth-body h2{font-size:25px;font-weight:500;margin:0 0 18px}
+.auth-tabs{display:grid;grid-template-columns:1fr 1fr;margin-bottom:18px;border-bottom:1px solid #d6ccbb}
+.auth-tabs button{border:0;background:none;padding:9px 6px;font-size:10px;color:#81786b}
+.auth-tabs button.active{color:#111;border-bottom:2px solid #111;font-weight:700}
+#authForm{display:grid;gap:13px}
+#authForm label{display:grid;gap:6px;font-size:9px;color:#696158}
+#authForm input{
+  width:100%;box-sizing:border-box;
+  background:#fff;border:1px solid #bfb5a5;color:#111;
+  padding:12px 11px;font-size:13px;outline:none;
+}
+#authForm input:focus{border-color:#111;box-shadow:0 0 0 1px #111}
+.auth-submit{
+  margin-top:4px;background:#111;color:var(--yellow);
+  border:2px solid #111;padding:12px 13px;font-size:10px;
+  box-shadow:4px 4px 0 #d9d2c3;
+}
+.auth-submit:disabled{opacity:.5}
+.auth-message{min-height:18px;margin-top:14px;color:#756d62;font-size:9px;line-height:1.45}
+
+@media(max-width:700px){
+  .topbar{
+    min-height:38px!important;
+    gap:8px!important;
+  }
+  .topbar-actions{gap:8px!important}
+  .topbar .brand{font-size:14px!important}
+  .topbar .navlink,.topbar .lang{font-size:8px!important}
+  .topbar .auth-entry{font-size:7px!important}
+  .auth-modal{padding:10px}
+  .auth-panel{width:min(390px,calc(100vw - 20px))}
+  .auth-body{padding:19px 17px 21px}
+}
+
+/* Saved/profile grids use the account-authenticated museum collection. */
+#accountSavedGrid .profile-artifact{min-width:0}

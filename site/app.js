@@ -2,6 +2,122 @@ import { SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY } from './supabase-config.js';
 const DEADLINE = new Date('2031-09-17T17:51:00Z').getTime();
 const K = 'ofh-v1';
 const SUPABASE_READY = Boolean(SUPABASE_URL && SUPABASE_PUBLISHABLE_KEY);
+const AUTH_K='ofh-auth-v1';
+let postAuthAction=null;
+let pendingAuthRoute='';
+function readAuth(){
+ try{return JSON.parse(localStorage.getItem(AUTH_K)||'null')}catch{return null}
+}
+let authState=readAuth();
+function writeAuth(v){
+ authState=v||null;
+ if(authState)localStorage.setItem(AUTH_K,JSON.stringify(authState));
+ else localStorage.removeItem(AUTH_K);
+}
+function authUser(){return authState?.user||null}
+function authLoggedIn(){return Boolean(authState?.user&&(authState?.access_token||authState?.refresh_token))}
+function authTokenFresh(){
+ const exp=Number(authState?.expires_at||0);
+ return Boolean(authState?.access_token&&(!exp||exp*1000>Date.now()+30000));
+}
+function authApiHeaders(extra={}){return {'apikey':SUPABASE_PUBLISHABLE_KEY,'Content-Type':'application/json',...extra}}
+async function refreshAuthSession(){
+ if(authTokenFresh())return true;
+ const rt=authState?.refresh_token;if(!rt){writeAuth(null);return false}
+ try{
+   const r=await fetch(`${SUPABASE_URL}/auth/v1/token?grant_type=refresh_token`,{
+     method:'POST',headers:authApiHeaders(),body:JSON.stringify({refresh_token:rt})
+   });
+   const data=await r.json().catch(()=>({}));
+   if(!r.ok||!data.access_token){writeAuth(null);return false}
+   writeAuth({...data,expires_at:data.expires_at||Math.floor(Date.now()/1000)+(data.expires_in||3600)});
+   return true;
+ }catch{writeAuth(null);return false}
+}
+async function requireAuth(action,{mode='login'}={}){
+ if(authLoggedIn()&&await refreshAuthSession()){if(action)await action();return true}
+ openAuthModal({mode,after:action});return false;
+}
+async function userDbHeaders(extra={}){
+ const ok=await refreshAuthSession();if(!ok)throw new Error(lang()==='ko'?'로그인이 필요합니다.':'login required.');
+ return {'apikey':SUPABASE_PUBLISHABLE_KEY,'Authorization':'Bearer '+authState.access_token,'Content-Type':'application/json',...extra};
+}
+function authHandle(){
+ const u=authUser(),raw=String(u?.user_metadata?.display_name||u?.user_metadata?.name||u?.email||'human');
+ return '@'+raw.split('@')[0].replace(/[^a-zA-Z0-9_.-]/g,'_').slice(0,28);
+}
+function closeAuthModal(){
+ document.querySelector('.auth-modal')?.remove();
+ if(!document.querySelector('.exhibit-modal,.local-exhibit-modal'))document.body.classList.remove('modal-open');
+ postAuthAction=null;
+}
+function authModalHtml(mode='login'){
+ const l=lang(),signup=mode==='signup';
+ return `<div class="auth-modal" role="dialog" aria-modal="true" aria-labelledby="authTitle">
+   <button class="auth-backdrop" data-close-auth aria-label="close"></button>
+   <section class="auth-panel">
+     <header class="auth-bar"><b>ONLY FOR HUMAN</b><button class="auth-close" data-close-auth>×</button></header>
+     <div class="auth-body">
+       <div class="auth-kicker">${l==='ko'?'인간 출입 기록':'HUMAN ACCESS RECORD'}</div>
+       <h2 id="authTitle">${signup?(l==='ko'?'가입하기':'SIGN UP'):(l==='ko'?'로그인':'LOG IN')}</h2>
+       <div class="auth-tabs">
+         <button class="${!signup?'active':''}" data-auth-mode="login">${l==='ko'?'로그인':'LOG IN'}</button>
+         <button class="${signup?'active':''}" data-auth-mode="signup">${l==='ko'?'가입':'SIGN UP'}</button>
+       </div>
+       <form id="authForm" data-mode="${signup?'signup':'login'}">
+         <label>${l==='ko'?'이메일':'EMAIL'}<input id="authEmail" type="email" autocomplete="email" required></label>
+         <label>${l==='ko'?'비밀번호':'PASSWORD'}<input id="authPassword" type="password" autocomplete="${signup?'new-password':'current-password'}" minlength="6" required></label>
+         <button class="auth-submit" type="submit">${signup?(l==='ko'?'가입하기':'CREATE ACCOUNT'):(l==='ko'?'로그인':'LOG IN')}</button>
+       </form>
+       <div id="authMessage" class="auth-message">${l==='ko'?'저장과 업로드는 로그인 후 사용할 수 있습니다.':'Saving and leaving artifacts require an account.'}</div>
+     </div>
+   </section>
+ </div>`;
+}
+function bindAuthModal(){
+ const modal=document.querySelector('.auth-modal');if(!modal)return;
+ modal.querySelectorAll('[data-close-auth]').forEach(b=>b.onclick=closeAuthModal);
+ modal.querySelectorAll('[data-auth-mode]').forEach(b=>b.onclick=()=>{
+   const after=postAuthAction,mode=b.dataset.authMode;modal.remove();postAuthAction=after;openAuthModal({mode,after});
+ });
+ const form=modal.querySelector('#authForm');
+ if(form)form.onsubmit=async e=>{
+   e.preventDefault();
+   const email=modal.querySelector('#authEmail')?.value?.trim();
+   const password=modal.querySelector('#authPassword')?.value||'';
+   const mode=form.dataset.mode,msg=modal.querySelector('#authMessage'),btn=form.querySelector('button[type="submit"]');
+   btn.disabled=true;msg.textContent=lang()==='ko'?'처리 중…':'working…';
+   try{
+     const endpoint=mode==='signup'?'/auth/v1/signup':'/auth/v1/token?grant_type=password';
+     const r=await fetch(SUPABASE_URL+endpoint,{method:'POST',headers:authApiHeaders(),body:JSON.stringify({email,password})});
+     const data=await r.json().catch(()=>({}));
+     if(!r.ok)throw new Error(data.msg||data.message||data.error_description||data.error||'authentication failed');
+     if(data.access_token){
+       writeAuth({...data,expires_at:data.expires_at||Math.floor(Date.now()/1000)+(data.expires_in||3600)});
+       const after=postAuthAction;closeAuthModal();render();if(after)setTimeout(()=>after(),0);
+       return;
+     }
+     if(mode==='signup'&&data.user){
+       msg.textContent=lang()==='ko'?'가입 확인 메일을 보냈습니다. 이메일 확인 후 로그인하세요.':'Check your email to confirm the account, then log in.';
+       form.dataset.mode='login';btn.textContent=lang()==='ko'?'로그인':'LOG IN';btn.disabled=false;return;
+     }
+     throw new Error('authentication failed');
+   }catch(err){msg.textContent=err.message||'authentication failed';btn.disabled=false}
+ };
+}
+function openAuthModal({mode='login',after=null}={}){
+ document.querySelector('.auth-modal')?.remove();postAuthAction=after||null;
+ document.body.insertAdjacentHTML('beforeend',authModalHtml(mode));
+ document.body.classList.add('modal-open');bindAuthModal();
+ setTimeout(()=>document.querySelector('#authEmail')?.focus(),30);
+}
+async function signOut(){
+ try{
+   if(authState?.access_token)await fetch(`${SUPABASE_URL}/auth/v1/logout`,{method:'POST',headers:{'apikey':SUPABASE_PUBLISHABLE_KEY,'Authorization':'Bearer '+authState.access_token}});
+ }catch{}
+ writeAuth(null);render();toast(lang()==='ko'?'로그아웃했습니다.':'logged out.');
+}
+
 const EXHIBIT_PREFIX = 'sample-';
 const MAX_SOURCE_BYTES = 10 * 1024 * 1024;
 const MAX_LONG_EDGE = 1920;
@@ -81,7 +197,7 @@ function mediaHtml(i,{eager=true}={}){
   ? `<img class="art-image" src="${m.src}" width="${m.w}" height="${m.h}" alt="" loading="${eager?'eager':'lazy'}" decoding="async" ${eager?'fetchpriority="high"':''}>`
   : `<div class="imgbox art-placeholder" style="--native-w:${m.w}px;--native-h:${m.h}px"></div>`;
 }
-function dbHeaders(extra={}){return {'apikey':SUPABASE_PUBLISHABLE_KEY,'Authorization':'Bearer '+SUPABASE_PUBLISHABLE_KEY,'Content-Type':'application/json',...extra}}
+function dbHeaders(extra={}){return {'apikey':SUPABASE_PUBLISHABLE_KEY,'Authorization':'Bearer '+(authTokenFresh()?authState.access_token:SUPABASE_PUBLISHABLE_KEY),'Content-Type':'application/json',...extra}}
 function randomOwnerToken(){
  const b=new Uint8Array(32);crypto.getRandomValues(b);
  return [...b].map(x=>x.toString(16).padStart(2,'0')).join('');
@@ -147,7 +263,7 @@ async function leaveVisitorNote(i,body){
 async function fetchLiveArtworks(limit=40,offset=0){
  if(!SUPABASE_READY)return [];
  try{
-   const q=`${SUPABASE_URL}/rest/v1/artworks?status=eq.published&image_bytes=not.is.null&select=id,slug,title,description,author_name,image_path,image_width,image_height,image_bytes,created_at,published_at&order=published_at.desc&limit=${limit}&offset=${offset}`;
+   const q=`${SUPABASE_URL}/rest/v1/artworks?status=eq.published&image_bytes=not.is.null&select=id,slug,title,description,author_name,user_id,image_path,image_width,image_height,image_bytes,created_at,published_at&order=published_at.desc&limit=${limit}&offset=${offset}`;
    const r=await fetch(q,{headers:dbHeaders()});
    if(!r.ok)return [];
    return await r.json();
@@ -701,7 +817,7 @@ async function leaveLiveVisitorNote(row,body){
  return (await r.json())[0];
 }
 function liveExhibitModalHtml(row){
- const l=lang(),url=liveArtUrl(row),title=esc(row.title||'untitled human artifact'),desc=esc(row.description||''),mine=Boolean(ownerTokenFor(row.slug)),frameSpec=museumFrameSpec(row),frame=frameSpec?'frame-photo-library':frameVariant(row,0);
+ const l=lang(),url=liveArtUrl(row),title=esc(row.title||'untitled human artifact'),desc=esc(row.description||''),mine=Boolean(ownerTokenFor(row.slug)||(authUser()?.id&&row.user_id===authUser().id)),frameSpec=museumFrameSpec(row),frame=frameSpec?'frame-photo-library':frameVariant(row,0);
  const date=new Date(row.published_at||row.created_at||Date.now()).toLocaleDateString(l==='ko'?'ko-KR':'en-US');
  return `<div class="exhibit-modal" data-live-slug="${esc(row.slug)}" role="dialog" aria-modal="true">
    <button class="exhibit-backdrop" data-close-exhibit aria-label="close exhibit"></button>
@@ -715,7 +831,7 @@ function liveExhibitModalHtml(row){
          <div class="exhibit-meta">${esc(row.author_name||'anonymous human')} · ${date}</div>
          <div class="exhibit-status-line"><span>${lang()==='ko'?'전시 상태':'EXHIBIT STATUS'}</span><b class="status-${esc(row.status||'published')}">${esc(artworkStatusLabel(row))}</b></div>
          <p class="exhibit-description">${desc}</p>
-         <div class="exhibit-actions"><button class="exhibit-action" id="modalShareBtn">${l==='ko'?'[ 퍼가기 ]':'[ SHARE ]'}</button></div>
+         <div class="exhibit-actions"><button class="exhibit-action" id="modalLiveSaveBtn" data-artwork-id="${esc(row.id||'')}">${l==='ko'?'[ 저장 ]':'[ SAVE ]'}</button><button class="exhibit-action" id="modalShareBtn">${l==='ko'?'[ 퍼가기 ]':'[ SHARE ]'}</button></div>
          ${mine?`<section class="owner-controls">
            <div class="owner-controls-title">${l==='ko'?'내 작품 관리':'MANAGE MY ARTIFACT'}</div>
            <button class="exhibit-action owner-visibility" id="modalVisibilityBtn">${row.status==='published'?(l==='ko'?'[ 비공개로 전환 ]':'[ MAKE PRIVATE ]'):(l==='ko'?'[ 공개로 전환 ]':'[ MAKE PUBLIC ]')}</button>
@@ -745,6 +861,36 @@ async function shareLiveExhibit(row){
  try{if(navigator.share){await navigator.share({title:'Only for Human',text,url});return}await navigator.clipboard.writeText(text+'\n'+url);toast(lang()==='ko'?'공유 링크 복사됨':'share link copied')}catch{}
 }
 
+async function isLiveArtworkSaved(row){
+ if(!authLoggedIn()||!row?.id)return false;
+ const headers=await userDbHeaders();
+ const r=await fetch(`${SUPABASE_URL}/rest/v1/saves?user_id=eq.${encodeURIComponent(authUser().id)}&artwork_id=eq.${encodeURIComponent(row.id)}&select=artwork_id&limit=1`,{headers});
+ if(!r.ok)return false;
+ return (await r.json()).length>0;
+}
+async function refreshLiveSaveButton(row){
+ const b=document.querySelector('#modalLiveSaveBtn');if(!b)return;
+ if(!authLoggedIn()){b.textContent=lang()==='ko'?'[ 저장 ]':'[ SAVE ]';b.dataset.saved='0';return}
+ try{
+   const saved=await isLiveArtworkSaved(row);b.dataset.saved=saved?'1':'0';
+   b.textContent=saved?(lang()==='ko'?'[ 저장됨 ]':'[ SAVED ]'):(lang()==='ko'?'[ 저장 ]':'[ SAVE ]');
+ }catch{}
+}
+async function toggleLiveArtworkSave(row){
+ if(!row?.id)return;
+ const headers=await userDbHeaders({'Prefer':'return=minimal'});
+ const saved=await isLiveArtworkSaved(row);
+ if(saved){
+   const r=await fetch(`${SUPABASE_URL}/rest/v1/saves?user_id=eq.${encodeURIComponent(authUser().id)}&artwork_id=eq.${encodeURIComponent(row.id)}`,{method:'DELETE',headers});
+   if(!r.ok)throw new Error('save delete failed');
+ }else{
+   const r=await fetch(`${SUPABASE_URL}/rest/v1/saves`,{method:'POST',headers,body:JSON.stringify({user_id:authUser().id,artwork_id:row.id})});
+   if(!r.ok)throw new Error('save failed');
+ }
+ await refreshLiveSaveButton(row);
+ toast(saved?(lang()==='ko'?'저장을 해제했습니다.':'removed from saved.'):(lang()==='ko'?'저장했습니다.':'saved.'));
+}
+
 function forgetOwnedArtwork(slug){
  const st=store();
  st.myArtworkSlugs=(st.myArtworkSlugs||[]).filter(x=>x!==slug);
@@ -752,10 +898,19 @@ function forgetOwnedArtwork(slug){
  saveStore(st);
 }
 async function setOwnedArtworkVisibility(row){
- const token=ownerTokenFor(row.slug);if(!token)return;
+ const token=ownerTokenFor(row.slug),mineByAuth=Boolean(authUser()?.id&&row.user_id===authUser().id);
+ if(!token&&!mineByAuth)return;
  const makePublic=row.status!=='published';
- const data=await manageArtworkRequest({action:'visibility',slug:row.slug,token,public:makePublic});
- Object.assign(row,data.artwork||{status:makePublic?'published':'hidden'});
+ let artwork=null;
+ if(mineByAuth){
+   const r=await fetch(`${SUPABASE_URL}/rest/v1/artworks?slug=eq.${encodeURIComponent(row.slug)}&user_id=eq.${encodeURIComponent(authUser().id)}`,{
+     method:'PATCH',headers:await userDbHeaders({'Prefer':'return=representation'}),body:JSON.stringify({status:makePublic?'published':'hidden',published_at:makePublic?new Date().toISOString():row.published_at})
+   });
+   if(!r.ok)throw new Error('visibility update failed');artwork=(await r.json())[0];
+ }else{
+   artwork=(await manageArtworkRequest({action:'visibility',slug:row.slug,token,public:makePublic})).artwork;
+ }
+ Object.assign(row,artwork||{status:makePublic?'published':'hidden'});
  const statusEl=document.querySelector('.exhibit-status-line b');
  if(statusEl){statusEl.className='status-'+row.status;statusEl.textContent=artworkStatusLabel(row)}
  const btn=document.querySelector('#modalVisibilityBtn');
@@ -763,11 +918,21 @@ async function setOwnedArtworkVisibility(row){
  toast(row.status==='published'?(lang()==='ko'?'공개 전시로 변경했습니다.':'now public.'):(lang()==='ko'?'비공개로 변경했습니다.':'now private.'));
 }
 async function deleteOwnedArtwork(row){
- const token=ownerTokenFor(row.slug);if(!token)return;
+ const token=ownerTokenFor(row.slug),mineByAuth=Boolean(authUser()?.id&&row.user_id===authUser().id);
+ if(!token&&!mineByAuth)return;
  const ok=confirm(lang()==='ko'?'이 작품을 완전히 삭제할까요? 이미지 파일과 관람평도 삭제됩니다.':'Delete this artifact permanently? The image and visitor notes will also be removed.');
  if(!ok)return;
  const btn=document.querySelector('#modalDeleteBtn');if(btn){btn.disabled=true;btn.textContent=lang()==='ko'?'삭제 중…':'DELETING…'}
- await manageArtworkRequest({action:'delete',slug:row.slug,token});
+ if(mineByAuth){
+   const headers=await userDbHeaders();
+   const r=await fetch(`${SUPABASE_URL}/rest/v1/artworks?slug=eq.${encodeURIComponent(row.slug)}&user_id=eq.${encodeURIComponent(authUser().id)}`,{method:'DELETE',headers});
+   if(!r.ok)throw new Error('delete failed');
+   if(row.image_path){
+     try{await fetch(`${SUPABASE_URL}/storage/v1/object/artworks/${row.image_path}`,{method:'DELETE',headers:{'apikey':SUPABASE_PUBLISHABLE_KEY,'Authorization':'Bearer '+authState.access_token}})}catch{}
+   }
+ }else{
+   await manageArtworkRequest({action:'delete',slug:row.slug,token});
+ }
  forgetOwnedArtwork(row.slug);
  liveArtworks=liveArtworks.filter(x=>x.slug!==row.slug);
  document.querySelectorAll(`[data-live-exhibit="${CSS.escape(row.slug)}"]`).forEach(el=>el.remove());
@@ -783,7 +948,7 @@ function openLiveExhibit(row,{push=true}={}){
  document.body.classList.add('modal-open');
  if(push)history.pushState({liveExhibit:row.slug},'', '/exhibit/'+row.slug);
  document.querySelectorAll('[data-close-exhibit]').forEach(b=>b.onclick=closeExhibit);
- const sh=document.querySelector('#modalShareBtn');if(sh)sh.onclick=()=>shareLiveExhibit(row);
+ const sv=document.querySelector('#modalLiveSaveBtn');if(sv)sv.onclick=()=>void requireAuth(()=>toggleLiveArtworkSave(row).catch(e=>toast(e.message)));refreshLiveSaveButton(row);const sh=document.querySelector('#modalShareBtn');if(sh)sh.onclick=()=>shareLiveExhibit(row);
  const vis=document.querySelector('#modalVisibilityBtn');if(vis)vis.onclick=()=>setOwnedArtworkVisibility(row).catch(e=>toast(e.message));
  const del=document.querySelector('#modalDeleteBtn');if(del)del.onclick=()=>deleteOwnedArtwork(row).catch(e=>{toast(e.message);del.disabled=false});
  const form=document.querySelector('#visitorNoteForm');if(form)form.onsubmit=async e=>{e.preventDefault();const input=document.querySelector('#visitorNoteInput'),body=input.value.trim();if(!body)return;const btn=form.querySelector('button');btn.disabled=true;try{await leaveLiveVisitorNote(row,body);input.value='';await refreshLiveNotes(row)}finally{btn.disabled=false}};
@@ -794,7 +959,7 @@ async function openExhibitRoute(slug){
  let row=liveArtworks.find(x=>x.slug===slug);
  if(!row){
    try{
-     const r=await fetch(`${SUPABASE_URL}/rest/v1/artworks?slug=eq.${encodeURIComponent(slug)}&status=eq.published&select=id,slug,title,description,author_name,image_path,image_width,image_height,image_bytes,created_at,published_at&limit=1`,{headers:dbHeaders()});
+     const r=await fetch(`${SUPABASE_URL}/rest/v1/artworks?slug=eq.${encodeURIComponent(slug)}&status=eq.published&select=id,slug,title,description,author_name,user_id,image_path,image_width,image_height,image_bytes,created_at,published_at&limit=1`,{headers:dbHeaders()});
      if(r.ok)row=(await r.json())[0];
    }catch{}
  }
@@ -805,7 +970,7 @@ function digitHtml(d, small=false){const bits=PIXELS[+d];return `<span class="di
 function timerHtml(){const total=Math.max(0,Math.ceil((DEADLINE-Date.now())/1000));const mins=Math.floor(total/60);const sec=String(total%60).padStart(2,'0');return `<div class="timer-wrap"><div id="mins" class="pixel-number">${String(mins).split('').map((d,i)=>`<span style="--dx:${[0,3,-2,4,-3,1][i%6]}px;--dy:${[0,-4,2,-2,3,0][i%6]}px">${digitHtml(d)}</span>`).join('')}</div><div class="seconds-unit"><div class="seconds"><span class="colon">:</span><div id="secs" class="pixel-number">${sec.split('').map(d=>digitHtml(d,true)).join('')}</div></div><div class="min-label">min</div></div></div>`}
 let timerId,feedObserver,feedCursor=0;
 function startTimer(){clearInterval(timerId);timerId=setInterval(()=>{const total=Math.max(0,Math.ceil((DEADLINE-Date.now())/1000));const mins=Math.floor(total/60),sec=String(total%60).padStart(2,'0');const m=document.querySelector('#mins');const s=document.querySelector('#secs');if(m&&m.dataset.v!==String(mins)){m.dataset.v=String(mins);m.innerHTML=String(mins).split('').map((d,i)=>`<span style="--dx:${[0,3,-2,4,-3,1][i%6]}px;--dy:${[0,-4,2,-2,3,0][i%6]}px">${digitHtml(d)}</span>`).join('')}if(s&&s.dataset.v!==sec){s.dataset.v=sec;s.innerHTML=sec.split('').map(d=>digitHtml(d,true)).join('')}},1000)}
-function frame(content){const l=lang(),t=copy[l];return `<div class="shell"><main class="page"><header class="topbar"><a class="brand" href="/" data-nav><span>ONLY FOR HUMAN</span></a><div class="status">${t.status}</div><a href="/saved" data-nav class="navlink">${t.saved}</a><a href="/profile" data-nav class="navlink you">${t.you}</a><button class="lang" id="langBtn">[ EN / 한국어 ]</button></header><div class="rule"></div><div class="rule r"></div><div class="rule b2"></div><div class="rule y"></div>${content}<div class="footer-rule"></div><footer class="footer">${t.footer}</footer></main></div>`}
+function frame(content){const l=lang(),t=copy[l],logged=authLoggedIn();return `<div class="shell"><main class="page"><header class="topbar"><a class="brand" href="/" data-nav><span>ONLY FOR HUMAN</span></a><div class="topbar-actions"><button class="navlink" data-auth-route="/saved">${t.saved}</button><button class="navlink you" data-auth-route="/profile">${t.you}</button><button class="navlink auth-entry" id="authEntryBtn">${logged?(l==='ko'?'[ 로그아웃 ]':'[ logout ]'):(l==='ko'?'[ 로그인 / 가입 ]':'[ login / join ]')}</button><button class="lang" id="langBtn">[ EN / 한국어 ]</button></div></header><div class="rule"></div><div class="rule r"></div><div class="rule b2"></div><div class="rule y"></div>${content}<div class="footer-rule"></div><footer class="footer">${t.footer}</footer></main></div>`}
 function art(i){const l=lang(),a=samples[i];return `<a href="${exhibitPath(i)}" data-exhibit="${i}" class="artifact ${a[3]}"><div class="imgbox ${a[2]}"></div><div class="cap">${esc(a[l==='en'?0:1])}</div></a>`}
 function streamArt(n){
  const l=lang(),i=n%samples.length,a=samples[i];
@@ -849,7 +1014,7 @@ function home(){
  const l=lang(),t=copy[l],wallLabel=l==='ko'?'상하좌우로 작품 넘기기':'swipe through the museum',hint=l==='ko'?'상하좌우 스와이프 · 한 작품씩 이동':'SWIPE ↑ ↓ ← → · ONE WORK AT A TIME';
  return frame(`<section class="home-intro">
    <section class="doom"><div class="doom-badge">${t.badge}</div><div class="side-pips"><i></i><i></i><i></i></div><div class="side-pips right"><i></i><i></i><i></i></div>${timerHtml()}<div class="doom-title">${t.title}</div><div class="glitch-rule"><i></i><i></i><i></i><i></i><i></i></div></section>
-   <div class="cta-row"><div class="tagline">${t.tag}</div><button class="leave-btn" data-go="/upload">${t.leave}</button></div>
+   <div class="cta-row"><div class="tagline">${t.tag}</div><button class="leave-btn" data-auth-route="/upload">${t.leave}</button></div>
    <div class="feed-head"><b>${t.feed}</b><span class="sort desktop-home-sort">${t.sort}</span><span class="sort mobile-wall-sort">[ ${wallLabel} ]</span></div>
    <div class="feed-note">${t.feedNote}</div><div class="feed-rule"></div>
  </section>
@@ -926,7 +1091,7 @@ function toggleExhibitSave(i){
 }
 function bindExhibitModal(i){
  document.querySelectorAll('[data-close-exhibit]').forEach(b=>b.onclick=closeExhibit);
- const s=document.querySelector('#modalSaveBtn');if(s)s.onclick=()=>toggleExhibitSave(i);
+ const s=document.querySelector('#modalSaveBtn');if(s)s.onclick=()=>void requireAuth(()=>toggleExhibitSave(i));
  const sh=document.querySelector('#modalShareBtn');if(sh)sh.onclick=()=>shareExhibit(i);
  const f=document.querySelector('#visitorNoteForm');if(f)f.onsubmit=async e=>{
    e.preventDefault();const input=document.querySelector('#visitorNoteInput'),body=input.value.trim();if(!body)return;
@@ -948,7 +1113,25 @@ function openExhibit(i,{push=true}={}){
 }
 function upload(){const l=lang(),t=copy[l];return frame(`<section class="subpage"><div class="kicker">${t.uploadKicker}</div><h1 class="title">${t.uploadTitle}</h1><div class="dropzone" id="drop"><input id="file" type="file" accept="image/png,image/jpeg,image/webp" hidden><div class="drop-inner" id="dropContent"><b>${t.drop}</b><small>${t.formats}</small><small class="opt-hint">${l==='en'?'preview = what the feed gets // auto WebP compression':'미리보기 = 실제 피드 이미지 // WebP 자동 압축'}</small></div></div><div class="formrow"><label class="label">${t.caption}</label><textarea id="caption" class="field" placeholder="${l==='en'?'ex: this was lunch. i liked it.':'예: 점심이었다. 맛있었다.'}"></textarea></div><label class="check"><input id="human" type="checkbox"><span>${t.human}<br><b style="color:var(--red)">${t.warning}</b></span></label><div class="actions"><button class="plain" data-go="/">${t.cancel}</button><button class="primary" id="uploadBtn">${t.leave}</button></div></section>`)}
 function detail(){const l=lang(),t=copy[l];const id=+(new URLSearchParams(location.search).get('id')||0);const s=samples[id]||samples[0];const st=store(),saved=new Set(st.saved||[]);return frame(`<section class="subpage"><button class="plain" data-go="/">← ${l==='en'?'RETURN TO THE PILE':'다시 더미로'}</button><div class="kicker" style="margin-top:22px">${t.detail} // ITEM ${String(id+1).padStart(6,'0')}</div><div class="detail-grid"><div class="detail-image">IMAGE GOES HERE // TEMPORARY</div><div class="detail-copy"><h2>${esc(s[l==='en'?0:1])}</h2><p>@someone // 2026</p><button class="primary" id="saveBtn" data-id="${id}">${saved.has(id)?'[ SAVED ]':t.save}</button><p style="color:var(--red);margin-top:45px">${t.report}</p><p style="margin-top:70px">no score. no likes.<br>no recommendation engine.<br>kept because someone wanted to.</p></div></div></section>`)}
-function savedPage(){const l=lang(),t=copy[l],ids=store().saved||[];return frame(`<section class="subpage"><div class="kicker">PERSONAL BUNKER // LOCAL COLLECTION</div><h1 class="title">${t.savedTitle}</h1>${ids.length?`<div class="saved-grid">${ids.map(art).join('')}</div>`:`<div class="empty">${l==='en'?'nothing saved. the void remains organized.':'저장한 게 없습니다. 공허만 잘 정리돼 있습니다.'}</div>`}</section>`)}
+function savedPage(){const l=lang(),t=copy[l];return frame(`<section class="subpage"><div class="kicker">PERSONAL BUNKER // ACCOUNT COLLECTION</div><h1 class="title">${t.savedTitle}</h1><div id="accountSavedGrid" class="saved-grid"><div class="empty">${l==='ko'?'저장한 작품을 불러오는 중…':'loading saved artifacts…'}</div></div></section>`)}
+
+async function hydrateSavedArtworks(){
+ const box=document.querySelector('#accountSavedGrid');if(!box||!authLoggedIn())return;
+ try{
+   const headers=await userDbHeaders(),uid=authUser().id;
+   const s=await fetch(`${SUPABASE_URL}/rest/v1/saves?user_id=eq.${encodeURIComponent(uid)}&select=artwork_id,created_at&order=created_at.desc`,{headers});
+   if(!s.ok)throw new Error('saved list failed');
+   const saves=await s.json();
+   if(!saves.length){box.innerHTML=`<div class="empty">${lang()==='ko'?'저장한 게 없습니다.':'nothing saved yet.'}</div>`;return}
+   const ids=saves.map(x=>x.artwork_id),filter=ids.join(',');
+   const r=await fetch(`${SUPABASE_URL}/rest/v1/artworks?id=in.(${encodeURIComponent(filter)})&select=id,slug,title,description,author_name,user_id,image_path,image_width,image_height,image_bytes,status,created_at,published_at`,{headers});
+   if(!r.ok)throw new Error('saved artworks failed');
+   const rows=await r.json(),byId=new Map(rows.map(x=>[x.id,x])),ordered=ids.map(id=>byId.get(id)).filter(Boolean);
+   const bySlug=new Map(ordered.map(x=>[x.slug,x]));liveArtworks=[...ordered,...liveArtworks.filter(x=>!bySlug.has(x.slug))];
+   box.innerHTML=ordered.map(liveProfileCard).join('');
+   wireLiveExhibits(box);
+ }catch(err){box.innerHTML=`<div class="empty">${esc(err.message||'saved load failed')}</div>`}
+}
 
 function artworkStatusLabel(row){
  const l=lang(),s=row?.status||'published';
@@ -968,29 +1151,25 @@ function liveProfileCard(row){
  </a>`;
 }
 async function hydrateProfileArtworks(){
- const box=document.querySelector('#profileArtworks');if(!box||!SUPABASE_READY)return;
- const st=store(),slugs=(st.myArtworkSlugs||[]).filter(Boolean),owners=st.myArtworkOwners||{};
- if(!slugs.length){wireLocalProfileCards();return}
+ const box=document.querySelector('#profileArtworks');if(!box||!SUPABASE_READY||!authLoggedIn())return;
  try{
-   const ownedItems=slugs.filter(s=>owners[s]).map(slug=>({slug,token:owners[slug]}));
-   let owned=[];
-   if(ownedItems.length){
-     const data=await manageArtworkRequest({action:'list',items:ownedItems});
-     owned=data.artworks||[];
-   }
-   const ownedSet=new Set(owned.map(x=>x.slug));
-   const legacySlugs=slugs.filter(s=>!ownedSet.has(s));
+   const headers=await userDbHeaders();
+   const uid=authUser().id;
+   const r=await fetch(`${SUPABASE_URL}/rest/v1/artworks?user_id=eq.${encodeURIComponent(uid)}&select=id,slug,title,description,author_name,user_id,image_path,image_width,image_height,image_bytes,status,created_at,published_at&order=created_at.desc`,{headers});
+   const authOwned=r.ok?await r.json():[];
+
+   // Preserve pre-account works that this browser still owns via legacy owner tokens.
+   const st=store(),slugs=(st.myArtworkSlugs||[]).filter(Boolean),owners=st.myArtworkOwners||{};
+   const legacyItems=slugs.filter(s=>owners[s]&&!authOwned.some(x=>x.slug===s)).map(slug=>({slug,token:owners[slug]}));
    let legacy=[];
-   if(legacySlugs.length){
-     const filter=legacySlugs.map(s=>`"${String(s).replaceAll('"','')}"`).join(',');
-     const r=await fetch(`${SUPABASE_URL}/rest/v1/artworks?slug=in.(${encodeURIComponent(filter)})&status=eq.published&select=id,slug,title,description,author_name,image_path,image_width,image_height,image_bytes,status,created_at,published_at`,{headers:dbHeaders()});
-     if(r.ok)legacy=await r.json();
+   if(legacyItems.length){
+     try{legacy=(await manageArtworkRequest({action:'list',items:legacyItems})).artworks||[]}catch{}
    }
-   const rows=[...owned,...legacy],bySlug=new Map(rows.map(x=>[x.slug,x]));
-   const ordered=slugs.map(s=>bySlug.get(s)).filter(Boolean);
-   liveArtworks=[...ordered,...liveArtworks.filter(x=>!bySlug.has(x.slug))];
+
+   const rows=[...authOwned,...legacy],bySlug=new Map(rows.map(x=>[x.slug,x]));
+   liveArtworks=[...rows,...liveArtworks.filter(x=>!bySlug.has(x.slug))];
    const localCards=[...box.querySelectorAll('.legacy-profile-artifact')].map(x=>x.outerHTML).join('');
-   box.innerHTML=ordered.map(liveProfileCard).join('')+localCards;
+   box.innerHTML=rows.map(liveProfileCard).join('')+localCards;
    wireLiveExhibits(box);wireLocalProfileCards();
  }catch(e){console.warn(e);wireLocalProfileCards()}
 }
@@ -1048,10 +1227,10 @@ function profile(){const l=lang(),t=copy[l],uploads=store().uploads||[];return f
   <div class="profile-head-row">
     <div>
       <div class="kicker">${t.profile}</div>
-      <h1 class="title" style="margin-bottom:8px">@someone</h1>
+      <h1 class="title" style="margin-bottom:8px">${esc(authHandle())}</h1>
       <div style="color:#777;font-size:12px">${t.bio}</div>
     </div>
-    <button class="primary profile-leave-btn" data-go="/upload">${t.leave}</button>
+    <button class="primary profile-leave-btn" data-auth-route="/upload">${t.leave}</button>
   </div>
   <div class="feed-rule" style="margin-top:28px"></div>
   <div class="profile-section-head">
@@ -1063,7 +1242,19 @@ function profile(){const l=lang(),t=copy[l],uploads=store().uploads||[];return f
   </div>
   ${!uploads.length && !(store().myArtworkSlugs||[]).length?`<div class="empty">${l==='en'?'nothing deposited yet.':'아직 투척한 게 없습니다.'}</div>`:''}
 </section>`)}
-function bind(){wireNav();wireExhibits();wireLocalProfileCards();document.querySelectorAll('[data-go]').forEach(b=>b.onclick=()=>nav(b.dataset.go));const lb=document.querySelector('#langBtn');if(lb)lb.onclick=()=>setLang(lang()==='en'?'ko':'en');const sb=document.querySelector('#saveBtn');if(sb)sb.onclick=()=>{const id=+sb.dataset.id,st=store(),x=new Set(st.saved||[]);x.has(id)?x.delete(id):x.add(id);st.saved=[...x];saveStore(st);toast(lang()==='en'?'saved. apparently.':'저장했습니다. 굳이.');render()};const drop=document.querySelector('#drop'),file=document.querySelector('#file');if(drop&&file){drop.onclick=()=>file.click();drop.ondragover=e=>{e.preventDefault();drop.style.borderColor='var(--yellow)'};drop.ondragleave=()=>drop.style.borderColor='';drop.ondrop=e=>{e.preventDefault();drop.style.borderColor='';if(e.dataTransfer.files[0])loadFile(e.dataTransfer.files[0])};file.onchange=()=>file.files[0]&&loadFile(file.files[0])}const caption=document.querySelector('#caption');if(caption)caption.oninput=updateUploadPreviewCaption;const up=document.querySelector('#uploadBtn');if(up)up.onclick=submitUpload}
+function bind(){
+ wireNav();wireExhibits();wireLocalProfileCards();
+ document.querySelectorAll('[data-go]').forEach(b=>b.onclick=()=>nav(b.dataset.go));
+ document.querySelectorAll('[data-auth-route]').forEach(b=>b.onclick=()=>void requireAuth(()=>nav(b.dataset.authRoute)));
+ const lb=document.querySelector('#langBtn');if(lb)lb.onclick=()=>setLang(lang()==='en'?'ko':'en');
+ const authBtn=document.querySelector('#authEntryBtn');if(authBtn)authBtn.onclick=()=>authLoggedIn()?void signOut():openAuthModal({mode:'login'});
+ const sb=document.querySelector('#saveBtn');if(sb)sb.onclick=()=>void requireAuth(()=>{const id=+sb.dataset.id,st=store(),x=new Set(st.saved||[]);x.has(id)?x.delete(id):x.add(id);st.saved=[...x];saveStore(st);toast(lang()==='en'?'saved. apparently.':'저장했습니다. 굳이.');render()});
+ const drop=document.querySelector('#drop'),file=document.querySelector('#file');
+ if(drop&&file){drop.onclick=()=>file.click();drop.ondragover=e=>{e.preventDefault();drop.style.borderColor='var(--yellow)'};drop.ondragleave=()=>drop.style.borderColor='';drop.ondrop=e=>{e.preventDefault();drop.style.borderColor='';if(e.dataTransfer.files[0])loadFile(e.dataTransfer.files[0])};file.onchange=()=>file.files[0]&&loadFile(file.files[0])}
+ const caption=document.querySelector('#caption');if(caption)caption.oninput=updateUploadPreviewCaption;
+ const up=document.querySelector('#uploadBtn');if(up)up.onclick=submitUpload;
+}
+
 let pendingImage='',pendingOptimized=null,pendingPreviewUrl='';
 
 function formatBytes(n){
@@ -1137,13 +1328,15 @@ function supabasePublicArtworkUrl(path){
 }
 async function persistOptimizedArtwork(o,caption){
  if(!SUPABASE_READY)throw new Error('Supabase is not connected');
+ if(!await refreshAuthSession())throw new Error(lang()==='ko'?'로그인이 필요합니다.':'login required.');
+ const user=authUser(),token=authState.access_token;
  const ownerToken=randomOwnerToken(),ownerTokenHash=await sha256HexText(ownerToken);
- const id=crypto.randomUUID(),path=`public/${Date.now()}-${id}.webp`;
+ const id=crypto.randomUUID(),path=`${user.id}/${Date.now()}-${id}.webp`;
  const storageRes=await fetch(`${SUPABASE_URL}/storage/v1/object/artworks/${path}`,{
    method:'POST',
    headers:{
      'apikey':SUPABASE_PUBLISHABLE_KEY,
-     'Authorization':'Bearer '+SUPABASE_PUBLISHABLE_KEY,
+     'Authorization':'Bearer '+token,
      'Content-Type':'image/webp',
      'cache-control':'max-age=31536000',
      'x-upsert':'false'
@@ -1153,6 +1346,7 @@ async function persistOptimizedArtwork(o,caption){
  if(!storageRes.ok)throw new Error('storage upload failed: '+(await storageRes.text()).slice(0,160));
  const title=(caption||'untitled human artifact').slice(0,120);
  const payload={
+   user_id:user.id,
    author_name:'anonymous human',
    title,
    description:(caption||'').slice(0,1000),
@@ -1167,7 +1361,7 @@ async function persistOptimizedArtwork(o,caption){
  };
  const dbRes=await fetch(`${SUPABASE_URL}/rest/v1/artworks`,{
    method:'POST',
-   headers:dbHeaders({'Prefer':'return=representation'}),
+   headers:await userDbHeaders({'Prefer':'return=representation'}),
    body:JSON.stringify(payload)
  });
  if(!dbRes.ok)throw new Error('database insert failed: '+(await dbRes.text()).slice(0,160));
@@ -1185,6 +1379,7 @@ function uploadedPreviewMarkup(row,caption){
  </div>`;
 }
 async function submitUpload(){
+ if(!authLoggedIn()||!await refreshAuthSession()){openAuthModal({mode:'login'});return}
  const human=document.querySelector('#human'),btn=document.querySelector('#uploadBtn');
  if(!pendingOptimized){toast(lang()==='en'?'drop an image first.':'이미지를 먼저 놓고 가세요.');return}
  if(!human?.checked){toast(lang()==='en'?'confirm it is human-made.':'직접 제작 확인이 필요합니다.');return}
@@ -1210,12 +1405,22 @@ async function submitUpload(){
 function toast(msg){const e=document.createElement('div');e.className='toast';e.textContent=msg;document.body.appendChild(e);setTimeout(()=>e.remove(),1800)}
 function render(){
  clearInterval(timerId);if(feedObserver){feedObserver.disconnect();feedObserver=null}if(wallPanCleanup){wallPanCleanup();wallPanCleanup=null}
- const p=route(),exhibitMatch=p.match(/^\/exhibit\/([^/]+)$/);
+ let p=route();const intended=p;
+ const protectedRoute=['/upload','/saved','/profile'].includes(p);
+ if(protectedRoute&&!authLoggedIn()){pendingAuthRoute=p;history.replaceState({},'', '/');p='/'}
+ const exhibitMatch=p.match(/^\/exhibit\/([^/]+)$/);
  document.documentElement.lang=lang();
  document.querySelector('#app').innerHTML=exhibitMatch?home():p==='/upload'?upload():p==='/saved'?savedPage():p==='/profile'?profile():p==='/detail'?detail():home();
  bind();
  if(p==='/'||exhibitMatch){startTimer();hydrateLiveFeed()}
- if(p==='/profile')hydrateProfileArtworks()
+ if(p==='/profile')hydrateProfileArtworks();
+ if(p==='/saved')hydrateSavedArtworks();
  if(exhibitMatch)requestAnimationFrame(()=>openExhibitRoute(exhibitMatch[1]));
+ if(pendingAuthRoute){
+   const dest=pendingAuthRoute;pendingAuthRoute='';
+   requestAnimationFrame(()=>openAuthModal({mode:'login',after:()=>nav(dest)}));
+ }
+ if(authLoggedIn()&&!authTokenFresh())void refreshAuthSession().then(ok=>{if(!ok&&intended!=='/')render()});
 }
+
 render();
