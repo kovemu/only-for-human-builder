@@ -1,0 +1,56 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="360" height="360" viewBox="0 0 360 360">
+<defs>
+  <linearGradient id="rail" x1="0" y1="0" x2="1" y2="1">
+    <stop offset="0" stop-color="#5f3f0b"/>
+    <stop offset=".12" stop-color="#c59125"/>
+    <stop offset=".28" stop-color="#ffe99a"/>
+    <stop offset=".45" stop-color="#b37b17"/>
+    <stop offset=".62" stop-color="#f0c955"/>
+    <stop offset=".80" stop-color="#7a500d"/>
+    <stop offset="1" stop-color="#d7aa36"/>
+  </linearGradient>
+  <linearGradient id="shine" x1="0" y1="0" x2="0" y2="1">
+    <stop offset="0" stop-color="#fff3b2"/>
+    <stop offset=".45" stop-color="#d4a739"/>
+    <stop offset="1" stop-color="#70470b"/>
+  </linearGradient>
+  <filter id="emb" x="-30%" y="-30%" width="160%" height="160%">
+    <feDropShadow dx="0" dy="1.2" stdDeviation="1" flood-color="#5b3700" flood-opacity=".35"/>
+  </filter>
+  <g id="corner" fill="none" stroke="url(#rail)" stroke-linecap="round" stroke-linejoin="round" filter="url(#emb)">
+    <path stroke-width="12" d="M14 82 C20 42 44 18 84 12"/>
+    <path stroke-width="8" d="M27 74 C38 48 51 35 75 26"/>
+    <path stroke-width="7" d="M35 64 C47 56 56 47 63 35"/>
+    <path stroke-width="7" d="M44 76 C53 60 61 52 77 43"/>
+    <path stroke-width="6" d="M18 55 C35 52 43 43 46 25"/>
+    <circle cx="24" cy="24" r="9" fill="#d8ad3d" stroke="#6a430a" stroke-width="4"/>
+    <path stroke-width="6" d="M58 18 C63 31 70 38 82 42"/>
+  </g>
+</defs>
+
+<!-- transparent center, ornamental border only -->
+<path d="M0 0H360V360H0Z M90 90H270V270H90Z" fill="url(#rail)" fill-rule="evenodd"/>
+
+<!-- quiet carved rails, no repeated chain motif -->
+<rect x="7" y="7" width="346" height="346" fill="none" stroke="#68430a" stroke-width="7"/>
+<rect x="18" y="18" width="324" height="324" fill="none" stroke="#f8df82" stroke-width="5"/>
+<rect x="30" y="30" width="300" height="300" fill="none" stroke="url(#shine)" stroke-width="11"/>
+<rect x="46" y="46" width="268" height="268" fill="none" stroke="#80530d" stroke-width="6"/>
+<rect x="57" y="57" width="246" height="246" fill="none" stroke="#efd16b" stroke-width="8"/>
+<rect x="72" y="72" width="216" height="216" fill="none" stroke="#70470a" stroke-width="5"/>
+<rect x="81" y="81" width="198" height="198" fill="none" stroke="#f5dc80" stroke-width="5"/>
+
+<!-- ornate corners only -->
+<use href="#corner" x="0" y="0"/>
+<use href="#corner" transform="translate(360 0) scale(-1 1)"/>
+<use href="#corner" transform="translate(0 360) scale(1 -1)"/>
+<use href="#corner" transform="translate(360 360) scale(-1 -1)"/>
+
+<!-- small center cartouches on each side; they stretch minimally and do not repeat -->
+<g fill="url(#shine)" stroke="#6b450a" stroke-width="3" filter="url(#emb)">
+  <path d="M150 29 C165 19 195 19 210 29 C198 35 191 42 180 49 C169 42 162 35 150 29Z"/>
+  <path d="M150 331 C165 341 195 341 210 331 C198 325 191 318 180 311 C169 318 162 325 150 331Z"/>
+  <path d="M29 150 C19 165 19 195 29 210 C35 198 42 191 49 180 C42 169 35 162 29 150Z"/>
+  <path d="M331 150 C341 165 341 195 331 210 C325 198 318 191 311 180 C318 169 325 162 331 150Z"/>
+</g>
+</svg>

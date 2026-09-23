@@ -1516,3 +1516,124 @@ html,body{
     border-width:32px!important;
   }
 }
+
+
+/* OFH ornate frame v4 — restrained museum frame, no double frame on mobile */
+.live-artifact.frame-asset-gold .live-imgbox{
+  padding:0!important;
+  border:0!important;
+  border-image:none!important;
+  background:transparent!important;
+  box-shadow:none!important;
+  overflow:visible!important;
+}
+.live-artifact.frame-asset-gold .live-imgbox::before,
+.live-artifact.frame-asset-gold .live-imgbox::after{display:none!important}
+.live-artifact.frame-asset-gold .live-imgbox img{
+  display:block!important;
+  box-sizing:border-box!important;
+  width:100%!important;
+  height:auto!important;
+  max-width:100%!important;
+  max-height:none!important;
+  margin:0!important;
+  padding:0!important;
+  background:transparent!important;
+  object-fit:contain!important;
+  border-style:solid!important;
+  border-color:transparent!important;
+  border-width:clamp(30px,3.1vw,46px)!important;
+  border-image-source:url("./assets/frame-gold-slice-v4.svg")!important;
+  border-image-slice:90!important;
+  border-image-width:1!important;
+  border-image-outset:0!important;
+  border-image-repeat:stretch!important;
+  box-shadow:0 13px 26px rgba(69,45,7,.15)!important;
+}
+.live-artifact.frame-asset-gold .cap{
+  margin-top:11px!important;
+  border-color:#c5a55e!important;
+  background:#fbf6e9!important;
+}
+
+/* modal uses the same single frame on the image only */
+.exhibit-art-stage.frame-asset-gold{
+  padding:0!important;
+  border:0!important;
+  border-image:none!important;
+  background:transparent!important;
+  box-shadow:none!important;
+  overflow:visible!important;
+  aspect-ratio:auto!important;
+}
+.exhibit-art-stage.frame-asset-gold::before,
+.exhibit-art-stage.frame-asset-gold::after{display:none!important}
+.exhibit-art-stage.frame-asset-gold .art-image{
+  display:block!important;
+  position:static!important;
+  box-sizing:border-box!important;
+  width:auto!important;
+  height:auto!important;
+  max-width:calc(100% - 44px)!important;
+  max-height:calc(100% - 44px)!important;
+  margin:0!important;
+  padding:0!important;
+  background:transparent!important;
+  object-fit:contain!important;
+  border-style:solid!important;
+  border-color:transparent!important;
+  border-width:40px!important;
+  border-image-source:url("./assets/frame-gold-slice-v4.svg")!important;
+  border-image-slice:90!important;
+  border-image-width:1!important;
+  border-image-outset:0!important;
+  border-image-repeat:stretch!important;
+  box-shadow:0 15px 30px rgba(69,45,7,.15)!important;
+}
+
+@media(max-width:560px){
+  /* kill the old outer frame: only the image itself gets the gold frame */
+  .mobile-feed .live-artifact.frame-asset-gold .art-stage{
+    width:100%!important;
+    height:68svh!important;
+    padding:0!important;
+    border:0!important;
+    border-image:none!important;
+    background:transparent!important;
+    box-shadow:none!important;
+    overflow:visible!important;
+    display:flex!important;
+    align-items:center!important;
+    justify-content:center!important;
+  }
+  .mobile-feed .live-artifact.frame-asset-gold .art-stage::before,
+  .mobile-feed .live-artifact.frame-asset-gold .art-stage::after{display:none!important}
+  .mobile-feed .live-artifact.frame-asset-gold .art-image{
+    display:block!important;
+    position:static!important;
+    box-sizing:border-box!important;
+    width:auto!important;
+    height:auto!important;
+    max-width:calc(100% - 12px)!important;
+    max-height:68svh!important;
+    margin:0 auto!important;
+    padding:0!important;
+    background:transparent!important;
+    object-fit:contain!important;
+    border-style:solid!important;
+    border-color:transparent!important;
+    border-width:27px!important;
+    border-image-source:url("./assets/frame-gold-slice-v4.svg")!important;
+    border-image-slice:90!important;
+    border-image-width:1!important;
+    border-image-outset:0!important;
+    border-image-repeat:stretch!important;
+    box-shadow:0 9px 18px rgba(69,45,7,.14)!important;
+  }
+  .mobile-feed .live-artifact.frame-asset-gold .cap{margin-top:9px!important}
+  .exhibit-art-stage.frame-asset-gold .art-image{
+    max-width:calc(100% - 20px)!important;
+    max-height:calc(100% - 20px)!important;
+    border-width:28px!important;
+  }
+}
