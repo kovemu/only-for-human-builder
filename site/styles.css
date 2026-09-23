@@ -2070,3 +2070,42 @@ html,body{
     max-height:calc(100dvh - 170px)!important;
   }
 }
+
+
+/* OFH frame v6.1 — exact source crops.
+   Source is 300x375. Slices: left/right 70, top 70, bottom 88.
+   Each rail/corner is a dedicated crop wrapper, so no white center can leak in. */
+.frame-asset-gold .museum-frame-v6{
+  --mf:clamp(27px,2.45vw,38px);
+  grid-template-columns:var(--mf) minmax(0,1fr) var(--mf)!important;
+  grid-template-rows:var(--mf) auto var(--mf)!important;
+  overflow:hidden!important;
+}
+.frame-asset-gold .museum-frame-v6 > .frame-piece{
+  background-size:100% 100%!important;
+  background-position:center!important;
+  background-repeat:no-repeat!important;
+}
+.frame-asset-gold .museum-frame-v6 > .frame-tl{background-image:url("./assets/frame-v6-tl.svg")!important}
+.frame-asset-gold .museum-frame-v6 > .frame-top{background-image:url("./assets/frame-v6-top.svg")!important}
+.frame-asset-gold .museum-frame-v6 > .frame-tr{background-image:url("./assets/frame-v6-tr.svg")!important}
+.frame-asset-gold .museum-frame-v6 > .frame-left{background-image:url("./assets/frame-v6-left.svg")!important}
+.frame-asset-gold .museum-frame-v6 > .frame-right{background-image:url("./assets/frame-v6-right.svg")!important}
+.frame-asset-gold .museum-frame-v6 > .frame-bl{background-image:url("./assets/frame-v6-bl.svg")!important}
+.frame-asset-gold .museum-frame-v6 > .frame-bottom{background-image:url("./assets/frame-v6-bottom.svg")!important}
+.frame-asset-gold .museum-frame-v6 > .frame-br{background-image:url("./assets/frame-v6-br.svg")!important}
+
+/* Keep artwork inside the center opening. */
+.frame-asset-gold .museum-frame-v6 > .frame-art{
+  min-width:0!important;
+  min-height:0!important;
+  align-self:start!important;
+  justify-self:stretch!important;
+  overflow:hidden!important;
+}
+.frame-asset-gold .museum-frame-v6::after{inset:var(--mf)!important}
+
+@media(max-width:560px){
+  .mobile-feed .frame-asset-gold .museum-frame-v6{--mf:18px!important}
+  .exhibit-art-stage.frame-asset-gold .museum-frame-v6{--mf:20px!important}
+}
