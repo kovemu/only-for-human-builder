@@ -318,7 +318,7 @@ function museumSnapMetrics(viewport){
    cellW:Math.max(205,Math.round(vw*.68)),
    // Bring the upper/lower neighbors much closer. On a normal phone this is
    // ~285-300px, so their frame edges remain visible around the current work.
-   cellH:Math.max(280,Math.min(305,Math.round(vh*.60)))
+   cellH:Math.max(330,Math.min(350,Math.round(vh*.69)))
  };
 }
 function museumSnapPlacement(row,index,metrics,cellOverride=null){
@@ -390,51 +390,66 @@ function snapRecyclePlan(state,dx,dy){
    next:[{x:x-1,y:y-1},{x,y:y-1},{x:x+1,y:y-1}]
  };
 }
-async function recycleFarthestSnapCards(state,dx,dy){
- if(!state||!state.hasMore)return 0;
- if(state.loadingPromise){
-   try{await state.loadingPromise}catch{}
+async function prefetchSnapUnseen(state,minReady=6){
+ if(!state)return 0;
+ if(state.unseenQueue.length>=minReady||!state.hasMoreRemote)return state.unseenQueue.length;
+ if(state.prefetchPromise){
+   try{await state.prefetchPromise}catch{}
+   return state.unseenQueue.length;
  }
+ const need=Math.max(6,minReady-state.unseenQueue.length);
+ const batch=Math.max(9,need);
+ state.prefetchPromise=(async()=>{
+   try{
+     const more=await fetchLiveArtworks(batch,state.nextOffset);
+     state.nextOffset+=more.length;
+     state.unseenQueue.push(...more);
+     // Warm image cache while these works are still off-screen.
+     more.forEach(row=>{const img=new Image();img.decoding='async';img.src=liveArtUrl(row)});
+     if(more.length<batch)state.hasMoreRemote=false;
+     return state.unseenQueue.length;
+   }catch(err){
+     console.error('[OFH] unseen prefetch failed',err);
+     return state.unseenQueue.length;
+   }finally{
+     state.prefetchPromise=null;
+   }
+ })();
+ return await state.prefetchPromise;
+}
+async function takeSnapUnseen(state,count){
+ if(state.unseenQueue.length<count&&state.hasMoreRemote){
+   await prefetchSnapUnseen(state,count);
+ }
+ return state.unseenQueue.splice(0,Math.min(count,state.unseenQueue.length));
+}
+async function recycleFarthestSnapCards(state,dx,dy){
+ if(!state)return 0;
  const plan=snapRecyclePlan(state,dx,dy);
  const oldCards=plan.old.map(c=>snapCardAt(state,c.x,c.y)).filter(Boolean);
  if(!oldCards.length)return 0;
 
- state.loading=true;
- state.viewport.classList.add('is-ring-loading');
- state.loadingPromise=(async()=>{
-   try{
-     // Only three unseen works per swipe. This keeps the DOM fixed at ~9 cards
-     // and reuses the row/column that just moved furthest away from the viewer.
-     const more=await fetchLiveArtworks(oldCards.length,state.nextOffset);
-     if(!more.length){state.hasMore=false;return 0}
-     const startIndex=state.rows.length;
-     state.nextOffset+=more.length;
-     state.rows.push(...more);
-     liveArtworks=state.rows;
+ const unseen=await takeSnapUnseen(state,oldCards.length);
+ if(!unseen.length)return 0;
 
-     oldCards.forEach((card,j)=>{
-       card.remove();
-       const row=more[j];
-       if(!row)return;
-       const index=startIndex+j;
-       const pos=plan.next[j];
-       const html=museumSnapCard(museumSnapPlacement(row,index,state.metrics,pos),state.metrics);
-       state.canvas.insertAdjacentHTML('beforeend',html);
-     });
-     wireLiveExhibits(state.canvas);
-     if(more.length<oldCards.length)state.hasMore=false;
-     preloadSnapNeighborhood(state);
-     return more.length;
-   }catch(err){
-     console.error('[OFH] recycle unseen works failed',err);
-     return 0;
-   }finally{
-     state.loading=false;
-     state.loadingPromise=null;
-     state.viewport.classList.remove('is-ring-loading');
-   }
- })();
- return await state.loadingPromise;
+ const startIndex=state.rows.length;
+ unseen.forEach((row,j)=>{
+   const card=oldCards[j];
+   if(!card)return;
+   card.remove();
+   const index=startIndex+j;
+   state.rows.push(row);
+   const pos=plan.next[j];
+   const html=museumSnapCard(museumSnapPlacement(row,index,state.metrics,pos),state.metrics);
+   state.canvas.insertAdjacentHTML('beforeend',html);
+ });
+ liveArtworks=state.rows;
+ wireLiveExhibits(state.canvas);
+ preloadSnapNeighborhood(state);
+
+ // Keep another small batch ready before the user reaches the next edge.
+ if(state.unseenQueue.length<4&&state.hasMoreRemote)void prefetchSnapUnseen(state,6);
+ return unseen.length;
 }
 async function moveSnapGrid(state,dx,dy){
  if(!state||state.moving)return false;
@@ -467,7 +482,7 @@ function setupMuseumSnapGrid(rows){
  wireLiveExhibits(canvas);
  const state={
    viewport,canvas,rows:[...rows],metrics,x:0,y:0,
-   nextOffset:rows.length,hasMore:rows.length>=9,
+   nextOffset:rows.length,unseenQueue:[],hasMoreRemote:rows.length>=9,prefetchPromise:null,
    loading:false,loadingPromise:null,moving:false,
    pointerId:null,startX:0,startY:0,moved:false,suppressClick:false
  };
@@ -538,6 +553,8 @@ function setupMuseumSnapGrid(rows){
  window.addEventListener('resize',resize);
  centerSnapState(state,{instant:true});
  preloadSnapNeighborhood(state);
+ // Fetch the next unseen works immediately, but keep them off-DOM until a swipe needs them.
+ void prefetchSnapUnseen(state,6);
  wallPanCleanup=()=>{
    viewport.removeEventListener('pointerdown',down);
    viewport.removeEventListener('pointermove',move);

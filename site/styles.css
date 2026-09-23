@@ -2928,3 +2928,9 @@ html,body{
     border:1px solid #d8cfbf!important;
   }
 }
+
+
+/* OFH Museum Snap Grid v1.4 — balanced vertical spacing + silent unseen prefetch */
+@media(max-width:700px){
+  .museum-wall-viewport.is-ring-loading::after{display:none!important}
+}
