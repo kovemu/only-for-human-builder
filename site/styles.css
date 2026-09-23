@@ -2471,3 +2471,204 @@ html,body{
     margin-top:4px!important;
   }
 }
+
+
+/* OFH Gallery Wall v1 — free 2D museum navigation */
+.page:has(.museum-wall-viewport){
+  height:100dvh!important;
+  min-height:100dvh!important;
+  max-height:100dvh!important;
+  display:flex!important;
+  flex-direction:column!important;
+  overflow:hidden!important;
+  padding-bottom:0!important;
+}
+.page:has(.museum-wall-viewport)>.topbar,
+.page:has(.museum-wall-viewport)>.rule,
+.page:has(.museum-wall-viewport)>.systemline,
+.page:has(.museum-wall-viewport)>.home-intro{
+  flex:0 0 auto!important;
+}
+.page:has(.museum-wall-viewport)>.museum-wall-viewport{
+  flex:1 1 auto!important;
+  min-height:190px!important;
+}
+
+.museum-wall-viewport{
+  position:relative!important;
+  width:100%!important;
+  margin:0!important;
+  overflow:hidden!important;
+  background:
+    radial-gradient(circle at 50% 35%,rgba(255,255,255,.72),rgba(255,255,255,0) 52%),
+    var(--museum-paper)!important;
+  border-top:1px solid #cfc7b9!important;
+  cursor:grab!important;
+  touch-action:none!important;
+  user-select:none!important;
+  outline:none!important;
+  overscroll-behavior:contain!important;
+}
+.museum-wall-viewport:focus-visible{
+  box-shadow:inset 0 0 0 2px #1f1f1f!important;
+}
+.museum-wall-viewport.is-grabbing{cursor:grabbing!important}
+.museum-wall-canvas{
+  position:absolute!important;
+  left:0!important;
+  top:0!important;
+  transform:translate3d(0,0,0);
+  transform-origin:0 0!important;
+  will-change:transform;
+  contain:layout paint style;
+}
+.museum-wall-loading,
+.museum-wall-empty{
+  position:absolute;
+  left:50%;
+  top:50%;
+  transform:translate(-50%,-50%);
+  color:#756f65;
+  font-size:12px;
+  white-space:nowrap;
+}
+.museum-wall-hint{
+  position:absolute!important;
+  right:12px!important;
+  bottom:10px!important;
+  z-index:40!important;
+  padding:6px 9px!important;
+  background:rgba(249,246,239,.9)!important;
+  border:1px solid #d4ccbe!important;
+  color:#6d665c!important;
+  font-size:9px!important;
+  letter-spacing:.08em!important;
+  pointer-events:none!important;
+  box-shadow:0 1px 0 rgba(255,255,255,.8) inset;
+}
+.wall-artwork{
+  position:absolute!important;
+  left:var(--wx)!important;
+  top:var(--wy)!important;
+  width:var(--ww)!important;
+  z-index:var(--wz)!important;
+  display:block!important;
+  color:var(--museum-ink)!important;
+  transform:rotate(var(--wr))!important;
+  transform-origin:center center!important;
+  transition:filter .14s ease,transform .14s ease!important;
+  -webkit-user-drag:none!important;
+}
+.wall-artwork img{-webkit-user-drag:none!important}
+.wall-art-inner{
+  width:100%!important;
+  position:relative!important;
+}
+.wall-artwork .museum-photo-frame{
+  width:100%!important;
+  max-width:none!important;
+  max-height:none!important;
+}
+.wall-artwork .wall-simple-frame{
+  width:100%!important;
+  height:auto!important;
+  min-height:0!important;
+  padding:10px!important;
+  border:7px solid #292622!important;
+  background:#f7f2e8!important;
+  box-shadow:0 0 0 2px #c7b89e,0 11px 20px rgba(45,36,23,.14)!important;
+  overflow:hidden!important;
+}
+.wall-artwork.frame-walnut .wall-simple-frame{border-color:#4a3124!important}
+.wall-artwork.frame-gold .wall-simple-frame,
+.wall-artwork.frame-gold-mat .wall-simple-frame{border-color:#a98234!important}
+.wall-artwork .wall-simple-frame img{
+  display:block!important;
+  width:100%!important;
+  height:auto!important;
+  max-width:none!important;
+  max-height:none!important;
+  border:0!important;
+  padding:0!important;
+  background:#fff!important;
+  box-shadow:none!important;
+}
+.wall-artwork .museum-caption{
+  display:block!important;
+  width:max-content!important;
+  max-width:min(100%,260px)!important;
+  margin:10px auto 0!important;
+  pointer-events:none!important;
+}
+@media(hover:hover) and (pointer:fine){
+  .wall-artwork:hover{
+    z-index:30!important;
+    filter:brightness(1.02);
+    transform:rotate(0deg) translateY(-2px)!important;
+  }
+}
+
+@media(min-width:901px){
+  .page:has(.museum-wall-viewport)>.home-intro .doom{
+    min-height:218px!important;
+    padding-top:8px!important;
+  }
+  .page:has(.museum-wall-viewport)>.home-intro .timer-wrap{
+    min-height:128px!important;
+    transform:scale(.86)!important;
+    transform-origin:center top!important;
+    margin-bottom:-18px!important;
+  }
+  .page:has(.museum-wall-viewport)>.home-intro .cta-row{margin-top:8px!important;margin-bottom:8px!important}
+  .page:has(.museum-wall-viewport)>.home-intro .feed-head{margin-top:9px!important}
+  .page:has(.museum-wall-viewport)>.home-intro .feed-note{margin-bottom:6px!important}
+}
+@media(min-width:561px) and (max-width:900px){
+  .page:has(.museum-wall-viewport)>.home-intro .doom{min-height:170px!important}
+  .museum-wall-hint{font-size:8px!important}
+}
+@media(max-width:560px){
+  html:has(.museum-wall-viewport){scroll-snap-type:none!important}
+  body:has(.museum-wall-viewport){overflow:hidden!important}
+  .page:has(.museum-wall-viewport){
+    height:100dvh!important;
+    min-height:100dvh!important;
+    max-height:100dvh!important;
+    padding:12px 10px 0!important;
+    overflow:hidden!important;
+  }
+  .page:has(.museum-wall-viewport)>.home-intro{
+    height:auto!important;
+    min-height:0!important;
+    max-height:none!important;
+    overflow:visible!important;
+    padding-bottom:0!important;
+  }
+  .page:has(.museum-wall-viewport)>.home-intro .cta-row{
+    margin:8px 0 9px!important;
+  }
+  .page:has(.museum-wall-viewport)>.home-intro .feed-head{
+    margin:8px 0 5px!important;
+  }
+  .page:has(.museum-wall-viewport)>.home-intro .feed-rule{margin-bottom:0!important}
+  .museum-wall-viewport{
+    margin:0 -10px!important;
+    width:calc(100% + 20px)!important;
+    min-height:250px!important;
+    border-top:1px solid #cfc7b9!important;
+  }
+  .museum-wall-hint{
+    right:7px!important;
+    bottom:6px!important;
+    font-size:7px!important;
+    padding:5px 6px!important;
+    opacity:.84;
+  }
+  .wall-artwork .museum-caption{
+    margin-top:7px!important;
+    max-width:190px!important;
+  }
+  .wall-artwork .museum-caption-main{font-size:12px!important}
+  .wall-artwork .museum-caption-date{font-size:10px!important}
+  .wall-artwork .museum-caption-author{font-size:9px!important}
+}

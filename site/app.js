@@ -257,22 +257,161 @@ function wireLiveExhibits(root=document){
    if(row)openLiveExhibit(row,{push:true});
  });
 }
+function wallSpiralCell(i){
+ if(i===0)return {x:0,y:0};
+ let x=0,y=0,dx=1,dy=0,segment=1,steps=0,turns=0;
+ for(let n=0;n<i;n++){
+   x+=dx;y+=dy;steps++;
+   if(steps===segment){
+     steps=0;const t=dx;dx=-dy;dy=t;turns++;
+     if(turns%2===0)segment++;
+   }
+ }
+ return {x,y};
+}
+function museumWallLayout(rows){
+ const phone=matchMedia('(max-width:560px)').matches;
+ const tablet=!phone&&matchMedia('(max-width:900px)').matches;
+ const cellW=phone?245:(tablet?330:410);
+ const cellH=phone?330:(tablet?430:520);
+ const pad=phone?105:(tablet?145:190);
+ const placed=rows.map((row,i)=>{
+   const cell=wallSpiralCell(i);
+   const h=frameHash(row,'wall-layout');
+   const spec=museumFrameSpec(row);
+   const ratio=spec?(spec.w/spec.h):Math.max(.55,Math.min(1.8,(Number(row.image_width)||1)/(Number(row.image_height)||1)));
+   const base=phone?175:(tablet?230:285);
+   const width=Math.round(base+((h>>>7)%5)*(phone?9:(tablet?13:17)));
+   const outerH=Math.round(width/ratio+58);
+   const jx=((h>>>13)%61)-30,jy=((h>>>19)%51)-25;
+   const x=cell.x*cellW+jx-width/2;
+   const y=cell.y*cellH+jy-outerH/2;
+   const rot=phone?0:[-1.2,-.7,0,0,.55,.9][(h>>>24)%6];
+   return {row,i,x,y,w:width,h:outerH,rot,z:2+((h>>>27)%4)};
+ });
+ let minX=Infinity,minY=Infinity,maxX=-Infinity,maxY=-Infinity;
+ placed.forEach(p=>{minX=Math.min(minX,p.x);minY=Math.min(minY,p.y);maxX=Math.max(maxX,p.x+p.w);maxY=Math.max(maxY,p.y+p.h)});
+ if(!placed.length)return {items:[],width:800,height:800,startX:400,startY:400};
+ const shiftX=pad-minX,shiftY=pad-minY;
+ placed.forEach(p=>{p.x=Math.round(p.x+shiftX);p.y=Math.round(p.y+shiftY)});
+ const width=Math.ceil(maxX-minX+pad*2),height=Math.ceil(maxY-minY+pad*2);
+ return {items:placed,width,height,startX:placed[0].x+placed[0].w/2,startY:placed[0].y+placed[0].h/2};
+}
+function museumWallCard(p){
+ const row=p.row,url=liveArtUrl(row),title=esc(row.title||'untitled human artifact'),slug=esc(row.slug);
+ const frameSpec=museumFrameSpec(row),frame=frameSpec?'frame-photo-library':frameVariant(row,p.i);
+ const art=frameSpec
+   ?museumPhotoFrameHtml(url,frameSpec,{width:row.image_width||'',height:row.image_height||'',loading:p.i<10?'eager':'lazy'})
+   :`<div class="wall-simple-frame live-imgbox"><img src="${url}" width="${row.image_width||''}" height="${row.image_height||''}" alt="" loading="${p.i<10?'eager':'lazy'}" decoding="async"></div>`;
+ return `<a href="/exhibit/${slug}" data-live-exhibit="${slug}" class="wall-artwork live-artifact ${frame}" style="--wx:${p.x}px;--wy:${p.y}px;--ww:${p.w}px;--wr:${p.rot}deg;--wz:${p.z}">
+   <div class="wall-art-inner">${art}</div>
+   ${museumCaptionHtml(row,title)}
+ </a>`;
+}
+let wallPanCleanup=null;
+function setupMuseumWallPan(layout){
+ const viewport=document.querySelector('#museumWallViewport'),canvas=document.querySelector('#museumWallCanvas');
+ if(!viewport||!canvas)return;
+ if(wallPanCleanup){wallPanCleanup();wallPanCleanup=null}
+ let tx=0,ty=0,dragging=false,moved=false,startX=0,startY=0,baseX=0,baseY=0,pointerId=null,suppressClick=false;
+ const clamp=()=>{
+   const vw=viewport.clientWidth,vh=viewport.clientHeight,ww=layout.width,wh=layout.height;
+   const minX=Math.min(0,vw-ww),minY=Math.min(0,vh-wh);
+   const maxX=Math.max(0,(vw-ww)/2),maxY=Math.max(0,(vh-wh)/2);
+   tx=Math.max(minX,Math.min(maxX,tx));
+   ty=Math.max(minY,Math.min(maxY,ty));
+ };
+ const paint=()=>{clamp();canvas.style.transform=`translate3d(${Math.round(tx)}px,${Math.round(ty)}px,0)`};
+ const reset=()=>{
+   tx=viewport.clientWidth*.46-layout.startX;
+   ty=viewport.clientHeight*.46-layout.startY;
+   paint();
+ };
+ const down=e=>{
+   if(e.button!==undefined&&e.button!==0)return;
+   dragging=true;moved=false;pointerId=e.pointerId;startX=e.clientX;startY=e.clientY;baseX=tx;baseY=ty;
+   viewport.classList.add('is-grabbing');
+ };
+ const move=e=>{
+   if(!dragging||e.pointerId!==pointerId)return;
+   const dx=e.clientX-startX,dy=e.clientY-startY;
+   if(!moved&&Math.hypot(dx,dy)>6){
+     moved=true;
+     try{viewport.setPointerCapture(pointerId)}catch{}
+   }
+   if(!moved)return;
+   tx=baseX+dx;ty=baseY+dy;paint();
+ };
+ const up=e=>{
+   if(!dragging||e.pointerId!==pointerId)return;
+   dragging=false;viewport.classList.remove('is-grabbing');
+   if(moved){
+     suppressClick=true;
+     setTimeout(()=>{suppressClick=false},180);
+     try{viewport.releasePointerCapture(pointerId)}catch{}
+   }
+   pointerId=null;
+ };
+ const clickCapture=e=>{
+   if(!suppressClick)return;
+   e.preventDefault();e.stopImmediatePropagation();suppressClick=false;
+ };
+ const wheel=e=>{
+   if(Math.abs(e.deltaX)<1&&Math.abs(e.deltaY)<1)return;
+   e.preventDefault();
+   let dx=e.deltaX,dy=e.deltaY;
+   if(e.shiftKey&&Math.abs(dx)<2){dx=dy;dy=0}
+   tx-=dx;ty-=dy;paint();
+ };
+ const key=e=>{
+   if(e.target!==viewport)return;
+   const step=e.shiftKey?180:95;
+   if(e.key==='ArrowLeft'){tx+=step}
+   else if(e.key==='ArrowRight'){tx-=step}
+   else if(e.key==='ArrowUp'){ty+=step}
+   else if(e.key==='ArrowDown'){ty-=step}
+   else if(e.key==='Home'){reset();e.preventDefault();return}
+   else return;
+   e.preventDefault();paint();
+ };
+ const resize=()=>reset();
+ viewport.addEventListener('pointerdown',down);
+ viewport.addEventListener('pointermove',move);
+ viewport.addEventListener('pointerup',up);
+ viewport.addEventListener('pointercancel',up);
+ viewport.addEventListener('click',clickCapture,true);
+ viewport.addEventListener('wheel',wheel,{passive:false});
+ viewport.addEventListener('keydown',key);
+ window.addEventListener('resize',resize);
+ requestAnimationFrame(reset);
+ wallPanCleanup=()=>{
+   viewport.removeEventListener('pointerdown',down);
+   viewport.removeEventListener('pointermove',move);
+   viewport.removeEventListener('pointerup',up);
+   viewport.removeEventListener('pointercancel',up);
+   viewport.removeEventListener('click',clickCapture,true);
+   viewport.removeEventListener('wheel',wheel);
+   viewport.removeEventListener('keydown',key);
+   window.removeEventListener('resize',resize);
+ };
+}
 async function hydrateLiveFeed(){
  const rows=await fetchLiveArtworks();
  liveArtworks=rows;
- if(!rows.length)return;
+ const viewport=document.querySelector('#museumWallViewport'),canvas=document.querySelector('#museumWallCanvas');
+ if(!viewport||!canvas)return;
+ if(!rows.length){
+   canvas.innerHTML=`<div class="museum-wall-empty">${lang()==='ko'?'아직 전시된 작품이 없습니다.':'the wall is empty. for now.'}</div>`;
+   return;
+ }
  const frameAtlas=new Image();frameAtlas.decoding='async';frameAtlas.src=FRAME_LIBRARY_ATLAS.url;
  rows.slice(0,12).forEach(r=>{const img=new Image();img.decoding='async';img.src=liveArtUrl(r)});
- const mobile=document.querySelector('#mobileFeed');
- if(mobile){
-   mobile.innerHTML=rows.map(r=>liveArtCard(r,{mobile:true})).join('')+mobile.innerHTML;
-   wireLiveExhibits(mobile);
- }
- const desktop=document.querySelector('.desktop-gallery');
- if(desktop){
-   desktop.innerHTML=`<div class="live-feed-grid">${rows.map((r,i)=>liveArtCard(r,{scatterIndex:i})).join('')}</div>`;
-   wireLiveExhibits(desktop);
- }
+ const layout=museumWallLayout(rows);
+ canvas.style.width=layout.width+'px';
+ canvas.style.height=layout.height+'px';
+ canvas.innerHTML=layout.items.map(museumWallCard).join('');
+ wireLiveExhibits(canvas);
+ setupMuseumWallPan(layout);
 }
 async function getLiveVisitorNotes(row){
  try{
@@ -434,7 +573,19 @@ function setupMobilePaging(){
    setTimeout(()=>{pageLock=false},380);
  };
 }
-function home(){const l=lang(),t=copy[l];return frame(`<section class="home-intro"><section class="doom"><div class="doom-badge">${t.badge}</div><div class="side-pips"><i></i><i></i><i></i></div><div class="side-pips right"><i></i><i></i><i></i></div>${timerHtml()}<div class="doom-title">${t.title}</div><div class="glitch-rule"><i></i><i></i><i></i><i></i><i></i></div></section><div class="cta-row"><div class="tagline">${t.tag}</div><button class="leave-btn" data-go="/upload">${t.leave}</button></div><div class="feed-head"><b>${t.feed}</b><span class="sort">${t.sort}</span></div><div class="feed-note">${t.feedNote}</div><div class="feed-rule"></div></section><section class="gallery desktop-gallery"><div class="col">${art(0)}${art(1)}${art(2)}</div><div class="col center-col">${art(3)}<div style="display:grid;grid-template-columns:1fr 1.1fr;gap:46px">${art(4)}${art(5)}</div></div><div class="col right-col">${art(6)}${art(7)}${art(8)}${art(9)}</div></section><section id="mobileFeed" class="mobile-feed">${mobileFeedInitial()}</section><div id="feedSentinel" class="feed-sentinel" aria-hidden="true"></div>`)}
+function home(){
+ const l=lang(),t=copy[l],wallLabel=l==='ko'?'작품 벽을 자유롭게 둘러보기':'wander the museum wall',hint=l==='ko'?'드래그 / 스와이프 · 사방으로 이동':'DRAG / SWIPE · WANDER ANY DIRECTION';
+ return frame(`<section class="home-intro">
+   <section class="doom"><div class="doom-badge">${t.badge}</div><div class="side-pips"><i></i><i></i><i></i></div><div class="side-pips right"><i></i><i></i><i></i></div>${timerHtml()}<div class="doom-title">${t.title}</div><div class="glitch-rule"><i></i><i></i><i></i><i></i><i></i></div></section>
+   <div class="cta-row"><div class="tagline">${t.tag}</div><button class="leave-btn" data-go="/upload">${t.leave}</button></div>
+   <div class="feed-head"><b>${t.feed}</b><span class="sort">[ ${wallLabel} ]</span></div>
+   <div class="feed-note">${t.feedNote}</div><div class="feed-rule"></div>
+ </section>
+ <section id="museumWallViewport" class="museum-wall-viewport" tabindex="0" aria-label="${wallLabel}">
+   <div id="museumWallCanvas" class="museum-wall-canvas"><div class="museum-wall-loading">loading human artifacts…</div></div>
+   <div class="museum-wall-hint" aria-hidden="true">${hint}</div>
+ </section>`);
+}
 
 function noteHtml(n){
  const when=new Date(n.created_at||Date.now()).toLocaleDateString(lang()==='ko'?'ko-KR':'en-US',{month:'short',day:'numeric'});
@@ -785,12 +936,12 @@ async function submitUpload(){
 }
 function toast(msg){const e=document.createElement('div');e.className='toast';e.textContent=msg;document.body.appendChild(e);setTimeout(()=>e.remove(),1800)}
 function render(){
- clearInterval(timerId);if(feedObserver){feedObserver.disconnect();feedObserver=null}
+ clearInterval(timerId);if(feedObserver){feedObserver.disconnect();feedObserver=null}if(wallPanCleanup){wallPanCleanup();wallPanCleanup=null}
  const p=route(),exhibitMatch=p.match(/^\/exhibit\/([^/]+)$/);
  document.documentElement.lang=lang();
  document.querySelector('#app').innerHTML=exhibitMatch?home():p==='/upload'?upload():p==='/saved'?savedPage():p==='/profile'?profile():p==='/detail'?detail():home();
  bind();
- if(p==='/'||exhibitMatch){startTimer();setupInfiniteFeed();setupMobilePaging();hydrateLiveFeed()}
+ if(p==='/'||exhibitMatch){startTimer();hydrateLiveFeed()}
  if(p==='/profile')hydrateProfileArtworks()
  if(exhibitMatch)requestAnimationFrame(()=>openExhibitRoute(exhibitMatch[1]));
 }
