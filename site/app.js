@@ -272,9 +272,10 @@ function wallSpiralCell(i){
 function museumWallLayout(rows){
  const phone=matchMedia('(max-width:560px)').matches;
  const tablet=!phone&&matchMedia('(max-width:900px)').matches;
- const cellW=phone?Math.max(320,Math.round(innerWidth*.98)):(tablet?330:410);
- const cellH=phone?455:(tablet?430:520);
- const pad=phone?150:(tablet?145:190);
+ const cellW=phone?Math.max(305,Math.min(325,Math.round(innerWidth*.82))):(tablet?330:410);
+ const cellH=phone?560:(tablet?430:520);
+ const padX=phone?110:(tablet?145:190);
+ const padY=phone?180:(tablet?145:190);
  const placed=rows.map((row,i)=>{
    const cell=wallSpiralCell(i);
    const h=frameHash(row,'wall-layout');
@@ -283,7 +284,7 @@ function museumWallLayout(rows){
    const base=phone?Math.min(242,Math.round(innerWidth*.72)):(tablet?230:285);
    const width=Math.round(base+((h>>>7)%4)*(phone?9:(tablet?13:17)));
    const outerH=Math.round(width/ratio+58);
-   const jx=phone?(((h>>>13)%31)-15):(((h>>>13)%61)-30),jy=phone?(((h>>>19)%31)-15):(((h>>>19)%51)-25);
+   const jx=phone?(((h>>>13)%17)-8):(((h>>>13)%61)-30),jy=phone?(((h>>>19)%21)-10):(((h>>>19)%51)-25);
    const x=cell.x*cellW+jx-width/2;
    const y=cell.y*cellH+jy-outerH/2;
    const rot=phone?0:[-1.2,-.7,0,0,.55,.9][(h>>>24)%6];
@@ -292,9 +293,9 @@ function museumWallLayout(rows){
  let minX=Infinity,minY=Infinity,maxX=-Infinity,maxY=-Infinity;
  placed.forEach(p=>{minX=Math.min(minX,p.x);minY=Math.min(minY,p.y);maxX=Math.max(maxX,p.x+p.w);maxY=Math.max(maxY,p.y+p.h)});
  if(!placed.length)return {items:[],width:800,height:800,startX:400,startY:400};
- const shiftX=pad-minX,shiftY=pad-minY;
+ const shiftX=padX-minX,shiftY=padY-minY;
  placed.forEach(p=>{p.x=Math.round(p.x+shiftX);p.y=Math.round(p.y+shiftY)});
- const width=Math.ceil(maxX-minX+pad*2),height=Math.ceil(maxY-minY+pad*2);
+ const width=Math.ceil(maxX-minX+padX*2),height=Math.ceil(maxY-minY+padY*2);
  return {items:placed,width,height,startX:placed[0].x+placed[0].w/2,startY:placed[0].y+placed[0].h/2};
 }
 function museumWallCard(p){
