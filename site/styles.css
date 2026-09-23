@@ -1718,3 +1718,19 @@ html,body{
     font-weight:400!important;
   }
 }
+
+
+/* PC museum plaque: center title/date/author under the artwork */
+@media(min-width:561px){
+  .live-feed-grid .museum-caption{
+    display:block!important;
+    width:max-content!important;
+    max-width:min(92%,420px)!important;
+    margin:12px auto 0!important;
+    text-align:center!important;
+  }
+  .live-feed-grid .museum-caption-main,
+  .live-feed-grid .museum-caption-author{
+    text-align:center!important;
+  }
+}
