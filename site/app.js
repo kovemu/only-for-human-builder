@@ -166,14 +166,40 @@ function scatterProfile(row,index=0){
  const tilt=[0,0,0,1,-1,0][(h>>>9)%6];
  return {span,nudge,tilt};
 }
-function frameVariant(row,index=0){
- const key=String(row.slug||'')+'|frame';
+const FRAME_LIBRARY_ATLAS={w:1420,h:2130,url:'/assets/frame-library-atlas.webp'};
+const MUSEUM_FRAME_LIBRARY=[
+ {id:'1',x:5,y:5,w:700,h:700,hole:{l:21.4844,t:13.0859,w:57.2266,h:73.8281},holeRatio:.7751,orientation:'portrait'},
+ {id:'3',x:787,y:5,w:556,h:700,hole:{l:11.1538,t:8.7576,w:77.5641,h:82.1792},holeRatio:.7497,orientation:'portrait'},
+ {id:'4',x:88,y:715,w:533,h:700,hole:{l:11.0256,t:8.3984,w:77.9487,h:83.2031},holeRatio:.7136,orientation:'portrait'},
+ {id:'5',x:715,y:796,w:700,h:538,hole:{l:11.0769,t:14.9,w:77.8462,h:70.3},holeRatio:1.4395,orientation:'landscape'},
+ {id:'6',x:5,y:1528,w:700,h:494,hole:{l:7.4286,t:12.3482,w:84.8571,h:76.5182},holeRatio:1.5714,orientation:'landscape'},
+ {id:'8',x:790,y:1425,w:550,h:700,hole:{l:23.3704,t:17.375,w:53.5771,h:63.75},holeRatio:.6608,orientation:'portrait'}
+];
+function frameHash(row,salt='frame'){
+ const key=String(row.slug||'')+'|'+salt;
  let h=2166136261;
  for(let i=0;i<key.length;i++){h^=key.charCodeAt(i);h=Math.imul(h,16777619)}
- h=h>>>0;
- const ratio=(row.image_width&&row.image_height)?row.image_width/row.image_height:1;
- // Only a minority of portrait-ish works get the real ornate frame asset.
- if(ratio<.95 && h%3===0)return 'frame-asset-gold';
+ return h>>>0;
+}
+function museumFrameSpec(row){
+ const iw=Number(row.image_width||0),ih=Number(row.image_height||0);
+ if(!iw||!ih)return null;
+ const ratio=iw/ih;
+ // Uploaded real frames are portrait/landscape. Keep near-square works on the simple museum frames
+ // instead of cropping them aggressively just to force a decorative frame.
+ if(ratio>=.88&&ratio<=1.18)return null;
+ const orientation=ratio>1?'landscape':'portrait';
+ const scored=MUSEUM_FRAME_LIBRARY
+   .filter(f=>f.orientation===orientation)
+   .map(f=>({f,score:Math.abs(Math.log(ratio/f.holeRatio))}))
+   .sort((a,b)=>a.score-b.score);
+ if(!scored.length)return null;
+ const best=scored[0].score;
+ const near=scored.filter(x=>x.score<=best+.06).slice(0,3);
+ return near[frameHash(row,'real-frame')%near.length].f;
+}
+function frameVariant(row,index=0){
+ const h=frameHash(row,'css-frame');
  const variants=['frame-black','frame-walnut','frame-simple','frame-gold','frame-black','frame-gold-mat','frame-simple','frame-walnut'];
  return variants[h%variants.length];
 }
@@ -195,24 +221,20 @@ function museumCaptionHtml(row,title){
    <div class="museum-caption-author">${author}</div>
  </div>`;
 }
-function museumGoldFrameHtml(url,{width='',height='',loading='lazy'}={}){
- return `<div class="museum-frame-v6" aria-hidden="false">
-   <i class="frame-piece frame-tl" aria-hidden="true"></i>
-   <i class="frame-piece frame-top" aria-hidden="true"></i>
-   <i class="frame-piece frame-tr" aria-hidden="true"></i>
-   <i class="frame-piece frame-left" aria-hidden="true"></i>
-   <img class="art-image frame-art" src="${url}" width="${width}" height="${height}" alt="" loading="${loading}" decoding="async">
-   <i class="frame-piece frame-right" aria-hidden="true"></i>
-   <i class="frame-piece frame-bl" aria-hidden="true"></i>
-   <i class="frame-piece frame-bottom" aria-hidden="true"></i>
-   <i class="frame-piece frame-br" aria-hidden="true"></i>
+function museumPhotoFrameHtml(url,spec,{width='',height='',loading='lazy'}={}){
+ const h=spec.hole;
+ const style=`--frame-aspect:${(spec.w/spec.h).toFixed(6)};--hole-left:${h.l}%;--hole-top:${h.t}%;--hole-width:${h.w}%;--hole-height:${h.h}%`;
+ return `<div class="museum-photo-frame frame-lib-${spec.id} is-${spec.orientation}" style="${style}">
+   <div class="museum-art-window"><img class="art-image frame-art" src="${url}" width="${width}" height="${height}" alt="" loading="${loading}" decoding="async"></div>
+   <svg class="museum-frame-overlay" viewBox="0 0 ${spec.w} ${spec.h}" preserveAspectRatio="none" aria-hidden="true" focusable="false">
+     <image href="${FRAME_LIBRARY_ATLAS.url}" x="${-spec.x}" y="${-spec.y}" width="${FRAME_LIBRARY_ATLAS.w}" height="${FRAME_LIBRARY_ATLAS.h}" preserveAspectRatio="none"></image>
+   </svg>
  </div>`;
 }
 function liveArtCard(row,{mobile=false,scatterIndex=0}={}){
- const url=liveArtUrl(row),title=esc(row.title||'untitled human artifact'),slug=esc(row.slug),frame=frameVariant(row,scatterIndex),caption=museumCaptionHtml(row,title);
- const gold=frame==='frame-asset-gold';
+ const url=liveArtUrl(row),title=esc(row.title||'untitled human artifact'),slug=esc(row.slug),frameSpec=museumFrameSpec(row),frame=frameSpec?'frame-photo-library':frameVariant(row,scatterIndex),caption=museumCaptionHtml(row,title);
  if(mobile){
-   const art=gold?museumGoldFrameHtml(url,{width:row.image_width||'',height:row.image_height||'',loading:'eager'}):`<img class="art-image" src="${url}" width="${row.image_width||''}" height="${row.image_height||''}" alt="" loading="eager" decoding="async">`;
+   const art=frameSpec?museumPhotoFrameHtml(url,frameSpec,{width:row.image_width||'',height:row.image_height||'',loading:'eager'}):`<img class="art-image" src="${url}" width="${row.image_width||''}" height="${row.image_height||''}" alt="" loading="eager" decoding="async">`;
    return `<a href="/exhibit/${slug}" data-live-exhibit="${slug}" class="artifact stream-item live-artifact ${frame}">
      <div class="artwork-card">
        <div class="art-stage">${art}</div>
@@ -221,7 +243,7 @@ function liveArtCard(row,{mobile=false,scatterIndex=0}={}){
    </a>`;
  }
  const p=scatterProfile(row,scatterIndex);
- const art=gold?museumGoldFrameHtml(url,{width:row.image_width||'',height:row.image_height||'',loading:'lazy'}):`<img src="${url}" width="${row.image_width||''}" height="${row.image_height||''}" alt="" loading="lazy" decoding="async">`;
+ const art=frameSpec?museumPhotoFrameHtml(url,frameSpec,{width:row.image_width||'',height:row.image_height||'',loading:'lazy'}):`<img src="${url}" width="${row.image_width||''}" height="${row.image_height||''}" alt="" loading="lazy" decoding="async">`;
  return `<a href="/exhibit/${slug}" data-live-exhibit="${slug}" class="artifact live-artifact scatter-card ${frame}" style="--scatter-span:${p.span};--scatter-nudge:${p.nudge}px;--scatter-tilt:${p.tilt}deg">
    <div class="live-imgbox">${art}</div>
    ${caption}
@@ -238,6 +260,7 @@ async function hydrateLiveFeed(){
  const rows=await fetchLiveArtworks();
  liveArtworks=rows;
  if(!rows.length)return;
+ const frameAtlas=new Image();frameAtlas.decoding='async';frameAtlas.src=FRAME_LIBRARY_ATLAS.url;
  rows.slice(0,12).forEach(r=>{const img=new Image();img.decoding='async';img.src=liveArtUrl(r)});
  const mobile=document.querySelector('#mobileFeed');
  if(mobile){
@@ -266,14 +289,14 @@ async function leaveLiveVisitorNote(row,body){
  return (await r.json())[0];
 }
 function liveExhibitModalHtml(row){
- const l=lang(),url=liveArtUrl(row),title=esc(row.title||'untitled human artifact'),desc=esc(row.description||''),mine=Boolean(ownerTokenFor(row.slug)),frame=frameVariant(row,0);
+ const l=lang(),url=liveArtUrl(row),title=esc(row.title||'untitled human artifact'),desc=esc(row.description||''),mine=Boolean(ownerTokenFor(row.slug)),frameSpec=museumFrameSpec(row),frame=frameSpec?'frame-photo-library':frameVariant(row,0);
  const date=new Date(row.published_at||row.created_at||Date.now()).toLocaleDateString(l==='ko'?'ko-KR':'en-US');
  return `<div class="exhibit-modal" data-live-slug="${esc(row.slug)}" role="dialog" aria-modal="true">
    <button class="exhibit-backdrop" data-close-exhibit aria-label="close exhibit"></button>
    <section class="exhibit-panel">
      <header class="exhibit-bar"><div><b>HUMAN ARTIFACT</b><span>THE LAST MUSEUM OF HUMANITY</span></div><button class="exhibit-close" data-close-exhibit>×</button></header>
      <div class="exhibit-layout">
-       <div class="exhibit-art"><div class="exhibit-art-stage ${frame}">${frame==='frame-asset-gold'?museumGoldFrameHtml(url,{width:row.image_width||'',height:row.image_height||'',loading:'eager'}):`<img class="art-image" src="${url}" alt="" decoding="async">`}</div></div>
+       <div class="exhibit-art"><div class="exhibit-art-stage ${frame}">${frameSpec?museumPhotoFrameHtml(url,frameSpec,{width:row.image_width||'',height:row.image_height||'',loading:'eager'}):`<img class="art-image" src="${url}" alt="" decoding="async">`}</div></div>
        <aside class="exhibit-copy">
          <div class="exhibit-kicker">${l==='ko'?'인류 최후의 미술관':'THE LAST MUSEUM OF HUMANITY'}</div>
          <h2>${title}</h2>

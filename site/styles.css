@@ -2258,3 +2258,151 @@ html,body{
     background:transparent!important;
   }
 }
+
+
+/* OFH frame v7 — uploaded real frames (1,3,4,5,6,8). No frame 7.
+   The artwork sits in the transparent opening; the complete source frame is overlaid intact,
+   so there are no sliced rails, seams, repeated pixels, or distorted corners. */
+.frame-photo-library .live-imgbox,
+.frame-photo-library .art-stage{
+  border:0!important;
+  border-image:none!important;
+  background:transparent!important;
+  box-shadow:none!important;
+  padding:0!important;
+  overflow:visible!important;
+}
+.frame-photo-library .live-imgbox::before,
+.frame-photo-library .live-imgbox::after,
+.frame-photo-library .art-stage::before,
+.frame-photo-library .art-stage::after{display:none!important}
+
+.museum-photo-frame{
+  position:relative!important;
+  display:block!important;
+  width:100%!important;
+  aspect-ratio:var(--frame-aspect)!important;
+  margin:0 auto!important;
+  padding:0!important;
+  border:0!important;
+  background:transparent!important;
+  overflow:visible!important;
+  isolation:isolate!important;
+  filter:drop-shadow(0 12px 16px rgba(48,39,26,.16));
+}
+.museum-photo-frame .museum-art-window{
+  position:absolute!important;
+  left:var(--hole-left)!important;
+  top:var(--hole-top)!important;
+  width:var(--hole-width)!important;
+  height:var(--hole-height)!important;
+  z-index:1!important;
+  overflow:hidden!important;
+  margin:0!important;
+  padding:0!important;
+  background:#161411!important;
+}
+.museum-photo-frame .museum-art-window>.art-image{
+  display:block!important;
+  position:absolute!important;
+  inset:0!important;
+  width:100%!important;
+  height:100%!important;
+  max-width:none!important;
+  max-height:none!important;
+  margin:0!important;
+  padding:0!important;
+  border:0!important;
+  border-image:none!important;
+  box-shadow:none!important;
+  object-fit:cover!important;
+  object-position:center!important;
+  transform:none!important;
+  clip-path:none!important;
+}
+.museum-photo-frame .museum-frame-overlay{
+  position:absolute!important;
+  inset:0!important;
+  z-index:2!important;
+  display:block!important;
+  width:100%!important;
+  height:100%!important;
+  overflow:visible!important;
+  pointer-events:none!important;
+}
+
+/* Desktop gallery: preserve each actual frame's native proportions. */
+@media(min-width:561px){
+  .live-feed-grid .frame-photo-library .museum-photo-frame{width:100%!important}
+  .live-feed-grid .frame-photo-library .cap{margin-top:12px!important}
+}
+
+/* Mobile one-work-at-a-time feed: keep the frame comfortably inside the viewport. */
+@media(max-width:560px){
+  .mobile-feed .frame-photo-library .artwork-card{
+    width:100%!important;
+    display:flex!important;
+    flex-direction:column!important;
+    align-items:center!important;
+  }
+  .mobile-feed .frame-photo-library .art-stage{
+    width:100%!important;
+    height:auto!important;
+    min-height:0!important;
+    max-height:none!important;
+    display:flex!important;
+    align-items:center!important;
+    justify-content:center!important;
+  }
+  .mobile-feed .frame-photo-library .museum-photo-frame{
+    width:min(80vw,292px)!important;
+    max-width:80vw!important;
+    height:auto!important;
+    max-height:62svh!important;
+  }
+  .mobile-feed .frame-photo-library .museum-photo-frame.is-landscape{
+    width:min(88vw,330px)!important;
+    max-width:88vw!important;
+  }
+}
+
+/* Exhibit modal: same source frame, fitted as one intact object. */
+.exhibit-art-stage.frame-photo-library{
+  border:0!important;
+  border-image:none!important;
+  background:transparent!important;
+  box-shadow:none!important;
+  padding:0!important;
+  overflow:hidden!important;
+  display:flex!important;
+  align-items:center!important;
+  justify-content:center!important;
+}
+.exhibit-art-stage.frame-photo-library::before,
+.exhibit-art-stage.frame-photo-library::after{display:none!important}
+
+@media(min-width:701px){
+  .exhibit-art-stage.frame-photo-library .museum-photo-frame{
+    width:min(100%,calc((100dvh - 160px) * var(--frame-aspect)))!important;
+    max-width:100%!important;
+    max-height:calc(100dvh - 160px)!important;
+    flex:0 1 auto!important;
+  }
+}
+@media(max-width:700px){
+  .exhibit-art-stage.frame-photo-library{
+    width:100%!important;
+    height:auto!important;
+    min-height:0!important;
+    max-height:none!important;
+    overflow:hidden!important;
+  }
+  .exhibit-art-stage.frame-photo-library .museum-photo-frame{
+    width:min(84vw,calc(50svh * var(--frame-aspect)))!important;
+    max-width:84vw!important;
+    max-height:50svh!important;
+  }
+  .exhibit-art-stage.frame-photo-library .museum-photo-frame.is-landscape{
+    width:min(90vw,340px)!important;
+  }
+}
