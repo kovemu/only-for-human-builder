@@ -1885,3 +1885,43 @@ html,body{
     border-image-repeat:stretch round!important;
   }
 }
+
+
+/* OFH frame v5.2 — remove visible edge tiling introduced by round repeat */
+.live-artifact.frame-asset-gold .live-imgbox img{
+  border-width:clamp(27px,2.6vw,40px)!important;
+  border-image-slice:70 70 88 70!important;
+  border-image-repeat:stretch!important;
+  image-rendering:auto!important;
+  -webkit-backface-visibility:hidden!important;
+  backface-visibility:hidden!important;
+  transform:none!important;
+  clip-path:none!important;
+}
+.exhibit-art-stage.frame-asset-gold .art-image{
+  border-width:36px!important;
+  border-image-slice:70 70 88 70!important;
+  border-image-repeat:stretch!important;
+  image-rendering:auto!important;
+  -webkit-backface-visibility:hidden!important;
+  backface-visibility:hidden!important;
+  transform:none!important;
+  clip-path:none!important;
+}
+@media(max-width:560px){
+  .mobile-feed .live-artifact.frame-asset-gold .art-image{
+    border-width:21px!important;
+    border-image-slice:70 70 88 70!important;
+    border-image-repeat:stretch!important;
+    image-rendering:auto!important;
+    -webkit-backface-visibility:hidden!important;
+    backface-visibility:hidden!important;
+    transform:none!important;
+    clip-path:none!important;
+  }
+  .exhibit-art-stage.frame-asset-gold .art-image{
+    border-width:23px!important;
+    border-image-slice:70 70 88 70!important;
+    border-image-repeat:stretch!important;
+  }
+}
