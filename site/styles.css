@@ -1734,3 +1734,114 @@ html,body{
     text-align:center!important;
   }
 }
+
+
+/* OFH frame v5 — real aged-gold texture, compact museum mounting */
+.live-artifact.frame-asset-gold .live-imgbox{
+  padding:0!important;
+  border:0!important;
+  border-image:none!important;
+  background:transparent!important;
+  box-shadow:none!important;
+  overflow:visible!important;
+}
+.live-artifact.frame-asset-gold .live-imgbox::before,
+.live-artifact.frame-asset-gold .live-imgbox::after{display:none!important}
+.live-artifact.frame-asset-gold .live-imgbox img{
+  display:block!important;
+  box-sizing:border-box!important;
+  width:100%!important;
+  height:auto!important;
+  max-width:100%!important;
+  max-height:none!important;
+  margin:0!important;
+  padding:0!important;
+  background:transparent!important;
+  object-fit:contain!important;
+  border-style:solid!important;
+  border-color:transparent!important;
+  border-width:clamp(28px,2.7vw,42px)!important;
+  border-image-source:url("./assets/frame-aged-gold-real.webp")!important;
+  border-image-slice:68 68 84 69!important;
+  border-image-width:1!important;
+  border-image-outset:0!important;
+  border-image-repeat:stretch!important;
+  box-shadow:0 12px 28px rgba(42,32,18,.20),0 2px 5px rgba(42,32,18,.10)!important;
+}
+.live-artifact.frame-asset-gold .cap{
+  margin-top:12px!important;
+}
+
+/* modal: the frame belongs to the work itself, not the modal stage */
+.exhibit-art-stage.frame-asset-gold{
+  padding:0!important;
+  border:0!important;
+  border-image:none!important;
+  background:transparent!important;
+  box-shadow:none!important;
+  overflow:visible!important;
+  aspect-ratio:auto!important;
+}
+.exhibit-art-stage.frame-asset-gold::before,
+.exhibit-art-stage.frame-asset-gold::after{display:none!important}
+.exhibit-art-stage.frame-asset-gold .art-image{
+  display:block!important;
+  position:static!important;
+  box-sizing:border-box!important;
+  width:auto!important;
+  height:auto!important;
+  max-width:calc(100% - 42px)!important;
+  max-height:calc(100% - 42px)!important;
+  margin:0!important;
+  padding:0!important;
+  background:transparent!important;
+  object-fit:contain!important;
+  border-style:solid!important;
+  border-color:transparent!important;
+  border-width:38px!important;
+  border-image-source:url("./assets/frame-aged-gold-real.webp")!important;
+  border-image-slice:68 68 84 69!important;
+  border-image-width:1!important;
+  border-image-outset:0!important;
+  border-image-repeat:stretch!important;
+  box-shadow:0 14px 30px rgba(42,32,18,.20)!important;
+}
+
+@media(max-width:560px){
+  .mobile-feed .live-artifact.frame-asset-gold .art-stage{
+    border:0!important;
+    border-image:none!important;
+    background:transparent!important;
+    box-shadow:none!important;
+    padding:0!important;
+  }
+  .mobile-feed .live-artifact.frame-asset-gold .art-stage::before,
+  .mobile-feed .live-artifact.frame-asset-gold .art-stage::after{display:none!important}
+  .mobile-feed .live-artifact.frame-asset-gold .art-image{
+    display:block!important;
+    position:static!important;
+    box-sizing:border-box!important;
+    width:auto!important;
+    height:auto!important;
+    max-width:100%!important;
+    max-height:100%!important;
+    margin:0 auto!important;
+    padding:0!important;
+    background:transparent!important;
+    object-fit:contain!important;
+    border-style:solid!important;
+    border-color:transparent!important;
+    border-width:22px!important;
+    border-image-source:url("./assets/frame-aged-gold-real.webp")!important;
+    border-image-slice:68 68 84 69!important;
+    border-image-width:1!important;
+    border-image-outset:0!important;
+    border-image-repeat:stretch!important;
+    box-shadow:0 8px 20px rgba(42,32,18,.17)!important;
+  }
+  .exhibit-art-stage.frame-asset-gold .art-image{
+    max-width:calc(100% - 20px)!important;
+    max-height:calc(100% - 20px)!important;
+    border-width:24px!important;
+  }
+}
