@@ -217,7 +217,8 @@ function artworkAuthorId(row){
 function museumCaptionHtml(row,title){
  const date=artworkCardDate(row),author=artworkAuthorId(row);
  return `<div class="cap museum-caption">
-   <div class="museum-caption-main">&lt;${title}&gt;${date?` <span class="museum-caption-date">${date}</span>`:''}</div>
+   <div class="museum-caption-main">&lt;${title}&gt;</div>
+   ${date?`<div class="museum-caption-date">${date}</div>`:''}
    <div class="museum-caption-author">${author}</div>
  </div>`;
 }

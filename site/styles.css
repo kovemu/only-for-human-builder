@@ -2421,3 +2421,53 @@ html,body{
 .museum-photo-frame .museum-frame-overlay > image{
   overflow:hidden!important;
 }
+
+
+/* OFH plaque v2 — title / date / author on three readable lines */
+.museum-caption{
+  min-width:180px!important;
+  padding:10px 16px 9px!important;
+  line-height:1.35!important;
+}
+.museum-caption-main{
+  font-size:15px!important;
+  line-height:1.25!important;
+  font-weight:600!important;
+  color:#171512!important;
+  text-align:center!important;
+}
+.museum-caption-date{
+  display:block!important;
+  margin:4px 0 0!important;
+  font-size:12px!important;
+  line-height:1.2!important;
+  color:#5f584e!important;
+  text-align:center!important;
+}
+.museum-caption-author{
+  display:block!important;
+  margin-top:4px!important;
+  font-size:11px!important;
+  line-height:1.2!important;
+  color:#6c655b!important;
+  text-align:center!important;
+}
+
+@media(max-width:560px){
+  .mobile-feed .museum-caption{
+    min-width:170px!important;
+    padding:9px 14px 8px!important;
+  }
+  .mobile-feed .museum-caption-main{
+    font-size:14px!important;
+    line-height:1.25!important;
+  }
+  .mobile-feed .museum-caption-date{
+    font-size:11px!important;
+    margin-top:4px!important;
+  }
+  .mobile-feed .museum-caption-author{
+    font-size:10px!important;
+    margin-top:4px!important;
+  }
+}
