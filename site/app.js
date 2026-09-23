@@ -315,19 +315,21 @@ function museumSnapMetrics(viewport){
  const vh=Math.max(300,viewport?.clientHeight||Math.round(innerHeight*.5));
  return {
    vw,vh,
-   cellW:Math.round(vw*.78),
-   // Keep enough vertical separation to avoid collisions, but expose the
-   // upper/lower frame edges so the next direction is visually discoverable.
-   cellH:Math.max(340,Math.round(vh*.78))
+   // Pull left/right neighbors further into view.
+   cellW:Math.max(205,Math.round(vw*.68)),
+   // Keep the next row close enough that its frame edge is always visible.
+   cellH:Math.max(335,Math.round(vh*.70))
  };
 }
-function museumSnapPlacement(row,index,metrics){
- const cell=wallSpiralCell(index);
+function museumSnapPlacement(row,index,metrics,cellOverride=null){
+ const cell=cellOverride||wallSpiralCell(index);
  const spec=museumFrameSpec(row);
  const ratio=spec?(spec.w/spec.h):Math.max(.55,Math.min(1.8,(Number(row.image_width)||1)/(Number(row.image_height)||1)));
- const byWidth=Math.round(metrics.vw*.69);
- const byHeight=Math.round(Math.max(170,(metrics.vh-105)*ratio));
- const width=Math.max(178,Math.min(byWidth,byHeight,286));
+ const byWidth=Math.round(metrics.vw*.72);
+ // Reserve room for the three-line plaque so vertical neighbors never cover each other.
+ const frameHeightBudget=Math.max(215,metrics.cellH-72);
+ const byCell=Math.round(frameHeightBudget*ratio);
+ const width=Math.max(168,Math.min(byWidth,byCell,248));
  return {row,index,cell,w:width};
 }
 function museumSnapCard(p,metrics){
@@ -367,35 +369,50 @@ function centerSnapState(state,{instant=false}={}){
  preloadSnapNeighborhood(state);
  if(instant)requestAnimationFrame(()=>requestAnimationFrame(()=>state.canvas.classList.remove('no-snap-transition')));
 }
-async function ensureNextSnapRing(state,{force=false}={}){
- if(!state||!state.hasMore)return false;
- if(state.loading){
+function snapCoordExists(state,x,y){
+ return Boolean(state.canvas.querySelector(`[data-grid-x="${x}"][data-grid-y="${y}"]`));
+}
+function snapNeighborCoords(x,y){
+ // Cardinal neighbors first, then corners. This makes directional swipes ready first.
+ return [
+   {x,y:y-1},{x:x+1,y},{x,y:y+1},{x:x-1,y},
+   {x:x+1,y:y-1},{x:x+1,y:y+1},{x:x-1,y:y+1},{x:x-1,y:y-1}
+ ];
+}
+async function ensureSnapCoordinates(state,coords){
+ if(!state||!state.hasMore)return 0;
+ if(state.loadingPromise){
    try{await state.loadingPromise}catch{}
-   return true;
  }
- const currentRing=snapRing(state.x,state.y);
- if(!force&&currentRing<state.loadedRing)return false;
- const nextRing=state.loadedRing+1;
- const need=8*nextRing;
+ const wanted=[];
+ const seen=new Set();
+ for(const c of coords){
+   const key=snapGridKey(c.x,c.y);
+   if(seen.has(key)||snapCoordExists(state,c.x,c.y))continue;
+   seen.add(key);wanted.push(c);
+ }
+ if(!wanted.length||!state.hasMore)return 0;
+
  state.loading=true;
  state.viewport.classList.add('is-ring-loading');
  state.loadingPromise=(async()=>{
    try{
-     const more=await fetchLiveArtworks(need,state.rows.length);
-     if(!more.length){state.hasMore=false;return false}
-     const start=state.rows.length;
+     const more=await fetchLiveArtworks(wanted.length,state.rows.length);
+     if(!more.length){state.hasMore=false;return 0}
+     const startIndex=state.rows.length;
+     const html=more.map((row,j)=>{
+       const index=startIndex+j;
+       return museumSnapCard(museumSnapPlacement(row,index,state.metrics,wanted[j]),state.metrics);
+     }).join('');
      state.rows.push(...more);
      liveArtworks=state.rows;
-     const html=more.map((row,j)=>museumSnapCard(museumSnapPlacement(row,start+j,state.metrics),state.metrics)).join('');
      state.canvas.insertAdjacentHTML('beforeend',html);
-     wireLiveExhibits(state.canvas);
-     state.loadedRing=nextRing;
-     if(more.length<need)state.hasMore=false;
+     if(more.length<wanted.length)state.hasMore=false;
      preloadSnapNeighborhood(state);
-     return true;
+     return more.length;
    }catch(err){
-     console.error('[OFH] next museum ring failed',err);
-     return false;
+     console.error('[OFH] museum neighborhood load failed',err);
+     return 0;
    }finally{
      state.loading=false;
      state.loadingPromise=null;
@@ -404,22 +421,28 @@ async function ensureNextSnapRing(state,{force=false}={}){
  })();
  return await state.loadingPromise;
 }
+function ensureSnapNeighborhood(state){
+ if(!state)return Promise.resolve(0);
+ return ensureSnapCoordinates(state,snapNeighborCoords(state.x,state.y));
+}
 async function moveSnapGrid(state,dx,dy){
  if(!state)return false;
  const nx=state.x+dx,ny=state.y+dy;
  let target=state.canvas.querySelector(`[data-grid-x="${nx}"][data-grid-y="${ny}"]`);
+
  if(!target&&state.hasMore){
-   // User reached the loaded frontier: fetch unseen works, place the next
-   // ring around the existing museum, then complete this same swipe.
-   await ensureNextSnapRing(state,{force:true});
+   // A fast swipe can reach an unloaded edge. Fetch that exact unseen work first.
+   await ensureSnapCoordinates(state,[{x:nx,y:ny}]);
    target=state.canvas.querySelector(`[data-grid-x="${nx}"][data-grid-y="${ny}"]`);
  }
  if(!target)return false;
+
  state.x=nx;state.y=ny;
  centerSnapState(state);
- // As soon as the user lands on the outer loaded ring, start preparing the
- // next unseen ring in the background before their next swipe.
- ensureNextSnapRing(state);
+
+ // After every landing, fill only the missing cells around the new center.
+ // Usually this is just 3 unseen works, not another whole ring.
+ void ensureSnapNeighborhood(state);
  return true;
 }
 function setupMuseumSnapGrid(rows){
@@ -431,7 +454,7 @@ function setupMuseumSnapGrid(rows){
  canvas.style.height='100%';
  canvas.innerHTML=rows.map((row,i)=>museumSnapCard(museumSnapPlacement(row,i,metrics),metrics)).join('');
  wireLiveExhibits(canvas);
- const state={viewport,canvas,rows:[...rows],metrics,x:0,y:0,loadedRing:1,hasMore:rows.length>=9,loading:false,loadingPromise:null,pointerId:null,startX:0,startY:0,moved:false,suppressClick:false};
+ const state={viewport,canvas,rows:[...rows],metrics,x:0,y:0,hasMore:rows.length>=9,loading:false,loadingPromise:null,pointerId:null,startX:0,startY:0,moved:false,suppressClick:false};
  mobileSnapState=state;
  let resizeTimer=null;
  const refreshGeometry=()=>{
@@ -439,9 +462,10 @@ function setupMuseumSnapGrid(rows){
    state.canvas.querySelectorAll('.snap-artwork').forEach(card=>{
      const index=Number(card.dataset.gridIndex||0),row=state.rows[index];
      if(!row)return;
-     const p=museumSnapPlacement(row,index,state.metrics);
-     card.style.setProperty('--sx',p.cell.x*state.metrics.cellW+'px');
-     card.style.setProperty('--sy',p.cell.y*state.metrics.cellH+'px');
+     const cell={x:Number(card.dataset.gridX||0),y:Number(card.dataset.gridY||0)};
+     const p=museumSnapPlacement(row,index,state.metrics,cell);
+     card.style.setProperty('--sx',cell.x*state.metrics.cellW+'px');
+     card.style.setProperty('--sy',cell.y*state.metrics.cellH+'px');
      card.style.setProperty('--ww',p.w+'px');
    });
    centerSnapState(state,{instant:true});
@@ -475,7 +499,7 @@ function setupMuseumSnapGrid(rows){
    const gx=Number(card.dataset.gridX),gy=Number(card.dataset.gridY);
    if(gx!==state.x||gy!==state.y){
      e.preventDefault();e.stopImmediatePropagation();
-     state.x=gx;state.y=gy;centerSnapState(state);ensureNextSnapRing(state);
+     state.x=gx;state.y=gy;centerSnapState(state);void ensureSnapNeighborhood(state);
    }
  };
  const key=e=>{
@@ -494,6 +518,7 @@ function setupMuseumSnapGrid(rows){
  window.addEventListener('resize',resize);
  centerSnapState(state,{instant:true});
  preloadSnapNeighborhood(state);
+ if(rows.length<9&&state.hasMore)void ensureSnapNeighborhood(state);
  wallPanCleanup=()=>{
    viewport.removeEventListener('pointerdown',down);
    viewport.removeEventListener('pointermove',move);

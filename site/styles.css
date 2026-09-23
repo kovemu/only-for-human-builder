@@ -2883,3 +2883,26 @@ html,body{
     border:1px solid #d8cfbf!important;
   }
 }
+
+
+/* OFH Museum Snap Grid v1.2 — stronger directional peeks, streamed local neighborhoods. */
+@media(max-width:700px){
+  .museum-wall-viewport{
+    background:
+      radial-gradient(circle at 50% 48%,rgba(255,255,255,.82),rgba(255,255,255,0) 58%),
+      var(--museum-paper)!important;
+  }
+  .snap-artwork{
+    opacity:.9!important;
+  }
+  .snap-artwork.is-current{
+    opacity:1!important;
+  }
+  /* Edge works are clues, not disabled placeholders. */
+  .snap-artwork:not(.is-current) .museum-caption{
+    opacity:.72!important;
+  }
+  .museum-wall-viewport.is-ring-loading::after{
+    content:'loading unseen works…'!important;
+  }
+}
