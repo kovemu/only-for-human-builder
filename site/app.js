@@ -177,20 +177,38 @@ function frameVariant(row,index=0){
  const variants=['frame-black','frame-walnut','frame-simple','frame-gold','frame-black','frame-gold-mat','frame-simple','frame-walnut'];
  return variants[h%variants.length];
 }
+function artworkCardDate(row){
+ const raw=row.created_at||row.published_at;
+ const d=raw?new Date(raw):null;
+ if(!d||Number.isNaN(d.getTime()))return '';
+ const y=d.getFullYear(),m=String(d.getMonth()+1).padStart(2,'0'),day=String(d.getDate()).padStart(2,'0');
+ return `${y}.${m}.${day}`;
+}
+function artworkAuthorId(row){
+ const raw=String(row.author_name||'anonymous human').trim();
+ return raw.startsWith('@')?esc(raw):'@'+esc(raw.replace(/\s+/g,'_'));
+}
+function museumCaptionHtml(row,title){
+ const date=artworkCardDate(row),author=artworkAuthorId(row);
+ return `<div class="cap museum-caption">
+   <div class="museum-caption-main">&lt;${title}&gt;${date?` <span class="museum-caption-date">${date}</span>`:''}</div>
+   <div class="museum-caption-author">${author}</div>
+ </div>`;
+}
 function liveArtCard(row,{mobile=false,scatterIndex=0}={}){
- const url=liveArtUrl(row),title=esc(row.title||'untitled human artifact'),slug=esc(row.slug),frame=frameVariant(row,scatterIndex);
+ const url=liveArtUrl(row),title=esc(row.title||'untitled human artifact'),slug=esc(row.slug),frame=frameVariant(row,scatterIndex),caption=museumCaptionHtml(row,title);
  if(mobile){
    return `<a href="/exhibit/${slug}" data-live-exhibit="${slug}" class="artifact stream-item live-artifact ${frame}">
      <div class="artwork-card">
        <div class="art-stage"><img class="art-image" src="${url}" width="${row.image_width||''}" height="${row.image_height||''}" alt="" loading="eager" decoding="async"></div>
-       <div class="cap">&lt;${title}&gt;</div>
+       ${caption}
      </div>
    </a>`;
  }
  const p=scatterProfile(row,scatterIndex);
  return `<a href="/exhibit/${slug}" data-live-exhibit="${slug}" class="artifact live-artifact scatter-card ${frame}" style="--scatter-span:${p.span};--scatter-nudge:${p.nudge}px;--scatter-tilt:${p.tilt}deg">
    <div class="live-imgbox"><img src="${url}" width="${row.image_width||''}" height="${row.image_height||''}" alt="" loading="lazy" decoding="async"></div>
-   <div class="cap">${title}</div>
+   ${caption}
  </a>`;
 }
 function wireLiveExhibits(root=document){

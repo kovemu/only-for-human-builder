@@ -1637,3 +1637,84 @@ html,body{
     border-width:28px!important;
   }
 }
+
+
+/* OFH museum plaque + smaller phone artwork */
+.museum-caption{
+  width:max-content!important;
+  max-width:min(92%,420px)!important;
+  margin:12px auto 0!important;
+  padding:7px 12px 6px!important;
+  text-align:center!important;
+  background:#f8f3e8!important;
+  color:#1c1915!important;
+  border:1px solid #cfc3ae!important;
+  box-shadow:0 1px 0 rgba(255,255,255,.9) inset!important;
+  font-family:"Courier New",monospace!important;
+  font-weight:400!important;
+  line-height:1.25!important;
+}
+.museum-caption-main{
+  font-size:11px;
+  white-space:normal;
+}
+.museum-caption-date{
+  margin-left:5px;
+  font-size:9px;
+  color:#6f665b;
+}
+.museum-caption-author{
+  margin-top:3px;
+  font-size:9px;
+  color:#777064;
+  letter-spacing:.02em;
+}
+
+@media(max-width:560px){
+  /* leave more breathing room around each work on phone */
+  .mobile-feed .artwork-card{
+    width:min(84%,310px)!important;
+    max-height:92%!important;
+  }
+  .mobile-feed .art-stage{
+    width:100%!important;
+    max-height:calc(100% - 72px)!important;
+  }
+  .mobile-feed .art-image{
+    max-width:100%!important;
+    max-height:100%!important;
+  }
+  .mobile-feed .frame-asset-gold .art-image{
+    max-width:100%!important;
+    max-height:100%!important;
+    border-width:24px!important;
+  }
+  .mobile-feed .museum-caption{
+    width:auto!important;
+    max-width:92%!important;
+    margin:11px auto 0!important;
+    padding:7px 11px 6px!important;
+    color:#1c1915!important;
+    background:#f8f3e8!important;
+    border:1px solid #cfc3ae!important;
+    font-weight:400!important;
+  }
+  .mobile-feed .museum-caption-main{
+    font-size:11px!important;
+    line-height:1.25!important;
+  }
+  .mobile-feed .museum-caption-date{
+    font-size:9px!important;
+  }
+  .mobile-feed .museum-caption-author{
+    margin-top:3px!important;
+    font-size:9px!important;
+    font-weight:400!important;
+  }
+  html[lang="ko"] .mobile-feed .museum-caption,
+  html[lang="ko"] .mobile-feed .museum-caption-main,
+  html[lang="ko"] .mobile-feed .museum-caption-author{
+    font-family:"Noto Sans KR",sans-serif!important;
+    font-weight:400!important;
+  }
+}
