@@ -2738,3 +2738,58 @@ html,body{
     min-height:300px!important;
   }
 }
+
+
+/* OFH wall breakpoint repair — phones / narrow previews up to 700px use the 2D wall.
+   This matches the rest of the mobile-looking UI and prevents hydrating the hidden desktop feed. */
+@media(min-width:701px){
+  .desktop-gallery{display:block!important}
+  .mobile-museum-wall{display:none!important}
+  .desktop-home-sort{display:inline!important}
+  .mobile-wall-sort{display:none!important}
+}
+@media(max-width:700px){
+  html:has(.museum-wall-viewport){scroll-snap-type:none!important}
+  body:has(.museum-wall-viewport){overflow:hidden!important}
+  .desktop-gallery{display:none!important}
+  .desktop-home-sort{display:none!important}
+  .mobile-wall-sort{display:inline!important}
+  .mobile-museum-wall{display:block!important}
+
+  .page:has(.museum-wall-viewport){
+    height:100dvh!important;
+    min-height:100dvh!important;
+    max-height:100dvh!important;
+    padding:12px 10px 0!important;
+    overflow:hidden!important;
+    display:flex!important;
+    flex-direction:column!important;
+  }
+  .page:has(.museum-wall-viewport)>.topbar,
+  .page:has(.museum-wall-viewport)>.rule,
+  .page:has(.museum-wall-viewport)>.systemline,
+  .page:has(.museum-wall-viewport)>.home-intro{
+    flex:0 0 auto!important;
+  }
+  .page:has(.museum-wall-viewport)>.museum-wall-viewport{
+    flex:1 1 auto!important;
+    min-height:300px!important;
+  }
+  .museum-wall-viewport{
+    margin:0 -10px!important;
+    width:calc(100% + 20px)!important;
+    min-height:300px!important;
+  }
+  .wall-artwork{
+    max-width:76vw!important;
+  }
+  .wall-artwork .museum-caption{
+    margin-top:10px!important;
+    min-width:184px!important;
+    max-width:210px!important;
+    padding:10px 12px 9px!important;
+  }
+  .wall-artwork .museum-caption-main{font-size:13px!important;line-height:1.28!important}
+  .wall-artwork .museum-caption-date{font-size:10.5px!important}
+  .wall-artwork .museum-caption-author{font-size:10px!important}
+}

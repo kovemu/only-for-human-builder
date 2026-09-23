@@ -270,7 +270,7 @@ function wallSpiralCell(i){
  return {x,y};
 }
 function museumWallLayout(rows){
- const phone=matchMedia('(max-width:560px)').matches;
+ const phone=matchMedia('(max-width:700px)').matches;
  const tablet=!phone&&matchMedia('(max-width:900px)').matches;
  const cellW=phone?Math.max(305,Math.min(325,Math.round(innerWidth*.82))):(tablet?330:410);
  const cellH=phone?560:(tablet?430:520);
@@ -397,12 +397,15 @@ function setupMuseumWallPan(layout){
  };
 }
 async function hydrateLiveFeed(){
- const rows=await fetchLiveArtworks();
+ let rows=[];
+ try{rows=await fetchLiveArtworks()}catch(err){
+   console.error('[OFH] artwork feed load failed',err);
+ }
  liveArtworks=rows;
  const frameAtlas=new Image();frameAtlas.decoding='async';frameAtlas.src=FRAME_LIBRARY_ATLAS.url;
  rows.slice(0,12).forEach(r=>{const img=new Image();img.decoding='async';img.src=liveArtUrl(r)});
 
- const phone=matchMedia('(max-width:560px)').matches;
+ const phone=matchMedia('(max-width:700px)').matches;
  const desktop=document.querySelector('.desktop-gallery');
  const viewport=document.querySelector('#museumWallViewport'),canvas=document.querySelector('#museumWallCanvas');
 
