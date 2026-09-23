@@ -195,19 +195,35 @@ function museumCaptionHtml(row,title){
    <div class="museum-caption-author">${author}</div>
  </div>`;
 }
+function museumGoldFrameHtml(url,{width='',height='',loading='lazy'}={}){
+ return `<div class="museum-frame-v6" aria-hidden="false">
+   <i class="frame-piece frame-tl" aria-hidden="true"></i>
+   <i class="frame-piece frame-top" aria-hidden="true"></i>
+   <i class="frame-piece frame-tr" aria-hidden="true"></i>
+   <i class="frame-piece frame-left" aria-hidden="true"></i>
+   <img class="art-image frame-art" src="${url}" width="${width}" height="${height}" alt="" loading="${loading}" decoding="async">
+   <i class="frame-piece frame-right" aria-hidden="true"></i>
+   <i class="frame-piece frame-bl" aria-hidden="true"></i>
+   <i class="frame-piece frame-bottom" aria-hidden="true"></i>
+   <i class="frame-piece frame-br" aria-hidden="true"></i>
+ </div>`;
+}
 function liveArtCard(row,{mobile=false,scatterIndex=0}={}){
  const url=liveArtUrl(row),title=esc(row.title||'untitled human artifact'),slug=esc(row.slug),frame=frameVariant(row,scatterIndex),caption=museumCaptionHtml(row,title);
+ const gold=frame==='frame-asset-gold';
  if(mobile){
+   const art=gold?museumGoldFrameHtml(url,{width:row.image_width||'',height:row.image_height||'',loading:'eager'}):`<img class="art-image" src="${url}" width="${row.image_width||''}" height="${row.image_height||''}" alt="" loading="eager" decoding="async">`;
    return `<a href="/exhibit/${slug}" data-live-exhibit="${slug}" class="artifact stream-item live-artifact ${frame}">
      <div class="artwork-card">
-       <div class="art-stage"><img class="art-image" src="${url}" width="${row.image_width||''}" height="${row.image_height||''}" alt="" loading="eager" decoding="async"></div>
+       <div class="art-stage">${art}</div>
        ${caption}
      </div>
    </a>`;
  }
  const p=scatterProfile(row,scatterIndex);
+ const art=gold?museumGoldFrameHtml(url,{width:row.image_width||'',height:row.image_height||'',loading:'lazy'}):`<img src="${url}" width="${row.image_width||''}" height="${row.image_height||''}" alt="" loading="lazy" decoding="async">`;
  return `<a href="/exhibit/${slug}" data-live-exhibit="${slug}" class="artifact live-artifact scatter-card ${frame}" style="--scatter-span:${p.span};--scatter-nudge:${p.nudge}px;--scatter-tilt:${p.tilt}deg">
-   <div class="live-imgbox"><img src="${url}" width="${row.image_width||''}" height="${row.image_height||''}" alt="" loading="lazy" decoding="async"></div>
+   <div class="live-imgbox">${art}</div>
    ${caption}
  </a>`;
 }
@@ -257,7 +273,7 @@ function liveExhibitModalHtml(row){
    <section class="exhibit-panel">
      <header class="exhibit-bar"><div><b>HUMAN ARTIFACT</b><span>THE LAST MUSEUM OF HUMANITY</span></div><button class="exhibit-close" data-close-exhibit>×</button></header>
      <div class="exhibit-layout">
-       <div class="exhibit-art"><div class="exhibit-art-stage ${frame}"><img class="art-image" src="${url}" alt="" decoding="async"></div></div>
+       <div class="exhibit-art"><div class="exhibit-art-stage ${frame}">${frame==='frame-asset-gold'?museumGoldFrameHtml(url,{width:row.image_width||'',height:row.image_height||'',loading:'eager'}):`<img class="art-image" src="${url}" alt="" decoding="async">`}</div></div>
        <aside class="exhibit-copy">
          <div class="exhibit-kicker">${l==='ko'?'인류 최후의 미술관':'THE LAST MUSEUM OF HUMANITY'}</div>
          <h2>${title}</h2>

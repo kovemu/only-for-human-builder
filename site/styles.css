@@ -1925,3 +1925,148 @@ html,body{
     border-image-repeat:stretch!important;
   }
 }
+
+
+/* OFH frame v6 — real nine-piece renderer.
+   Corners never scale. Rails stretch on one axis only. No border-image seams. */
+.frame-asset-gold .museum-frame-v6{
+  --mf:clamp(27px,2.45vw,38px);
+  --frame-tex:url("./assets/frame-aged-gold-real.webp");
+  position:relative!important;
+  display:grid!important;
+  grid-template-columns:var(--mf) minmax(0,1fr) var(--mf)!important;
+  grid-template-rows:var(--mf) auto var(--mf)!important;
+  width:100%!important;
+  max-width:100%!important;
+  height:auto!important;
+  box-sizing:border-box!important;
+  margin:0!important;
+  padding:0!important;
+  border:0!important;
+  background:transparent!important;
+  box-shadow:0 13px 27px rgba(42,32,18,.18),0 2px 5px rgba(42,32,18,.08)!important;
+  overflow:hidden!important;
+}
+.frame-asset-gold .museum-frame-v6 > .frame-art{
+  grid-column:2!important;
+  grid-row:2!important;
+  display:block!important;
+  position:static!important;
+  z-index:1!important;
+  box-sizing:border-box!important;
+  width:100%!important;
+  height:auto!important;
+  max-width:100%!important;
+  max-height:none!important;
+  margin:0!important;
+  padding:0!important;
+  border:0!important;
+  border-image:none!important;
+  object-fit:contain!important;
+  background:transparent!important;
+  box-shadow:none!important;
+  transform:none!important;
+  clip-path:none!important;
+}
+.frame-asset-gold .museum-frame-v6 > .frame-piece{
+  display:block!important;
+  position:static!important;
+  z-index:2!important;
+  min-width:0!important;
+  min-height:0!important;
+  margin:0!important;
+  padding:0!important;
+  border:0!important;
+  background-image:var(--frame-tex)!important;
+  background-repeat:no-repeat!important;
+  pointer-events:none!important;
+}
+.frame-asset-gold .museum-frame-v6 > .frame-tl{
+  grid-column:1;grid-row:1;
+  background-size:500% 500%!important;background-position:left top!important;
+}
+.frame-asset-gold .museum-frame-v6 > .frame-tr{
+  grid-column:3;grid-row:1;
+  background-size:500% 500%!important;background-position:right top!important;
+}
+.frame-asset-gold .museum-frame-v6 > .frame-bl{
+  grid-column:1;grid-row:3;
+  background-size:500% 500%!important;background-position:left bottom!important;
+}
+.frame-asset-gold .museum-frame-v6 > .frame-br{
+  grid-column:3;grid-row:3;
+  background-size:500% 500%!important;background-position:right bottom!important;
+}
+.frame-asset-gold .museum-frame-v6 > .frame-top{
+  grid-column:2;grid-row:1;
+  background-size:100% 500%!important;background-position:center top!important;
+}
+.frame-asset-gold .museum-frame-v6 > .frame-bottom{
+  grid-column:2;grid-row:3;
+  background-size:100% 500%!important;background-position:center bottom!important;
+}
+.frame-asset-gold .museum-frame-v6 > .frame-left{
+  grid-column:1;grid-row:2;
+  background-size:500% 100%!important;background-position:left center!important;
+}
+.frame-asset-gold .museum-frame-v6 > .frame-right{
+  grid-column:3;grid-row:2;
+  background-size:500% 100%!important;background-position:right center!important;
+}
+/* small dark rebate where the artwork meets the moulding */
+.frame-asset-gold .museum-frame-v6::after{
+  content:""!important;
+  position:absolute!important;
+  z-index:3!important;
+  pointer-events:none!important;
+  inset:var(--mf)!important;
+  box-shadow:
+    0 0 0 2px rgba(50,37,23,.72),
+    inset 0 0 0 1px rgba(235,221,183,.42)!important;
+}
+
+/* cancel every previous border-image implementation for the v6 child */
+.live-artifact.frame-asset-gold .live-imgbox .museum-frame-v6 > img,
+.exhibit-art-stage.frame-asset-gold .museum-frame-v6 > img{
+  border:0!important;
+  border-image:none!important;
+  box-shadow:none!important;
+  transform:none!important;
+  clip-path:none!important;
+}
+.exhibit-art-stage.frame-asset-gold .museum-frame-v6{
+  width:auto!important;
+  max-width:calc(100% - 20px)!important;
+  max-height:calc(100% - 20px)!important;
+}
+.exhibit-art-stage.frame-asset-gold .museum-frame-v6 > .frame-art{
+  width:auto!important;
+  max-width:100%!important;
+  max-height:calc(100vh - 170px)!important;
+}
+
+@media(max-width:560px){
+  .mobile-feed .frame-asset-gold .museum-frame-v6{
+    --mf:18px;
+    width:auto!important;
+    max-width:min(92%,276px)!important;
+    max-height:100%!important;
+    margin:0 auto!important;
+    box-shadow:0 8px 18px rgba(42,32,18,.15)!important;
+  }
+  .mobile-feed .frame-asset-gold .museum-frame-v6 > .frame-art{
+    width:auto!important;
+    max-width:100%!important;
+    max-height:calc(68svh - 36px)!important;
+  }
+  .exhibit-art-stage.frame-asset-gold .museum-frame-v6{
+    --mf:20px;
+    max-width:calc(100% - 16px)!important;
+    max-height:calc(100% - 16px)!important;
+  }
+  .exhibit-art-stage.frame-asset-gold .museum-frame-v6 > .frame-art{
+    width:auto!important;
+    max-width:100%!important;
+    max-height:calc(100dvh - 170px)!important;
+  }
+}
