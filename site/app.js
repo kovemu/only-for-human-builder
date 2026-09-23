@@ -226,7 +226,7 @@ function museumPhotoFrameHtml(url,spec,{width='',height='',loading='lazy'}={}){
  const style=`--frame-aspect:${(spec.w/spec.h).toFixed(6)};--hole-left:${h.l}%;--hole-top:${h.t}%;--hole-width:${h.w}%;--hole-height:${h.h}%`;
  return `<div class="museum-photo-frame frame-lib-${spec.id} is-${spec.orientation}" style="${style}">
    <div class="museum-art-window"><img class="art-image frame-art" src="${url}" width="${width}" height="${height}" alt="" loading="${loading}" decoding="async"></div>
-   <svg class="museum-frame-overlay" viewBox="0 0 ${spec.w} ${spec.h}" preserveAspectRatio="none" aria-hidden="true" focusable="false">
+   <svg class="museum-frame-overlay" viewBox="0 0 ${spec.w} ${spec.h}" preserveAspectRatio="none" overflow="hidden" aria-hidden="true" focusable="false">
      <image href="${FRAME_LIBRARY_ATLAS.url}" x="${-spec.x}" y="${-spec.y}" width="${FRAME_LIBRARY_ATLAS.w}" height="${FRAME_LIBRARY_ATLAS.h}" preserveAspectRatio="none"></image>
    </svg>
  </div>`;

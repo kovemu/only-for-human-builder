@@ -2406,3 +2406,18 @@ html,body{
     width:min(90vw,340px)!important;
   }
 }
+
+
+/* OFH frame v7.1 — clip sprite atlas to each selected frame viewport.
+   Without this, the rest of the six-frame atlas bleeds outside the SVG and covers the gallery. */
+.museum-photo-frame{
+  overflow:hidden!important;
+}
+.museum-photo-frame .museum-frame-overlay{
+  overflow:hidden!important;
+  clip-path:inset(0)!important;
+  contain:paint!important;
+}
+.museum-photo-frame .museum-frame-overlay > image{
+  overflow:hidden!important;
+}
