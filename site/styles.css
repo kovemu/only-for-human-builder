@@ -1189,3 +1189,85 @@ html,body{
     object-fit:contain!important;background:#fff!important;box-shadow:none!important;
   }
 }
+
+/* MOBILE REAL ORNATE FRAME ASSET — same selected works as desktop */
+@media(max-width:560px){
+  .mobile-feed .live-artifact.frame-asset-gold .art-stage{
+    position:relative!important;
+    width:min(92vw,360px)!important;
+    height:auto!important;
+    aspect-ratio:4/5!important;
+    max-height:calc(100% - 44px)!important;
+    padding:0!important;
+    background:transparent!important;
+    overflow:hidden!important;
+    flex:0 1 auto!important;
+    box-shadow:0 9px 20px rgba(79,55,13,.16)!important;
+  }
+  .mobile-feed .live-artifact.frame-asset-gold .art-stage::after{
+    content:"";
+    position:absolute;
+    inset:0;
+    z-index:4;
+    pointer-events:none;
+    background:url("./assets/frame-gold-portrait.webp") center/100% 100% no-repeat!important;
+  }
+  .mobile-feed .live-artifact.frame-asset-gold .art-image{
+    position:absolute!important;
+    z-index:1;
+    left:21.57%!important;
+    top:17.55%!important;
+    width:56.95%!important;
+    height:63.20%!important;
+    max-width:none!important;
+    max-height:none!important;
+    margin:0!important;
+    padding:0!important;
+    border:0!important;
+    object-fit:contain!important;
+    background:#fff!important;
+    box-shadow:none!important;
+  }
+  .mobile-feed .live-artifact.frame-asset-gold .cap{
+    margin-top:10px!important;
+    border-color:#c7ab6d!important;
+    background:#fbf3df!important;
+    color:#231f1a!important;
+  }
+
+  /* same ornate frame inside the mobile exhibit modal */
+  .exhibit-art-stage.frame-asset-gold{
+    position:relative!important;
+    width:min(82vw,340px)!important;
+    height:auto!important;
+    aspect-ratio:4/5!important;
+    padding:0!important;
+    background:transparent!important;
+    box-shadow:none!important;
+    overflow:hidden!important;
+  }
+  .exhibit-art-stage.frame-asset-gold::after{
+    content:"";
+    position:absolute;
+    inset:0;
+    z-index:4;
+    pointer-events:none;
+    background:url("./assets/frame-gold-portrait.webp") center/100% 100% no-repeat!important;
+  }
+  .exhibit-art-stage.frame-asset-gold .art-image{
+    position:absolute!important;
+    z-index:1;
+    left:21.57%!important;
+    top:17.55%!important;
+    width:56.95%!important;
+    height:63.20%!important;
+    max-width:none!important;
+    max-height:none!important;
+    margin:0!important;
+    padding:0!important;
+    border:0!important;
+    object-fit:contain!important;
+    background:#fff!important;
+    box-shadow:none!important;
+  }
+}
