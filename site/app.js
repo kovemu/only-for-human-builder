@@ -316,7 +316,9 @@ function museumSnapMetrics(viewport){
  return {
    vw,vh,
    cellW:Math.round(vw*.78),
-   cellH:Math.max(430,Math.round(vh*.92))
+   // Keep enough vertical separation to avoid collisions, but expose the
+   // upper/lower frame edges so the next direction is visually discoverable.
+   cellH:Math.max(340,Math.round(vh*.78))
  };
 }
 function museumSnapPlacement(row,index,metrics){
@@ -365,43 +367,58 @@ function centerSnapState(state,{instant=false}={}){
  preloadSnapNeighborhood(state);
  if(instant)requestAnimationFrame(()=>requestAnimationFrame(()=>state.canvas.classList.remove('no-snap-transition')));
 }
-async function ensureNextSnapRing(state){
- if(!state||state.loading||!state.hasMore)return;
+async function ensureNextSnapRing(state,{force=false}={}){
+ if(!state||!state.hasMore)return false;
+ if(state.loading){
+   try{await state.loadingPromise}catch{}
+   return true;
+ }
  const currentRing=snapRing(state.x,state.y);
- if(currentRing<state.loadedRing)return;
+ if(!force&&currentRing<state.loadedRing)return false;
  const nextRing=state.loadedRing+1;
  const need=8*nextRing;
  state.loading=true;
  state.viewport.classList.add('is-ring-loading');
- try{
-   const more=await fetchLiveArtworks(need,state.rows.length);
-   if(!more.length){state.hasMore=false;return}
-   const start=state.rows.length;
-   state.rows.push(...more);
-   liveArtworks=state.rows;
-   const html=more.map((row,j)=>museumSnapCard(museumSnapPlacement(row,start+j,state.metrics),state.metrics)).join('');
-   state.canvas.insertAdjacentHTML('beforeend',html);
-   wireLiveExhibits(state.canvas);
-   state.loadedRing=nextRing;
-   if(more.length<need)state.hasMore=false;
-   preloadSnapNeighborhood(state);
- }catch(err){
-   console.error('[OFH] next museum ring failed',err);
- }finally{
-   state.loading=false;
-   state.viewport.classList.remove('is-ring-loading');
- }
+ state.loadingPromise=(async()=>{
+   try{
+     const more=await fetchLiveArtworks(need,state.rows.length);
+     if(!more.length){state.hasMore=false;return false}
+     const start=state.rows.length;
+     state.rows.push(...more);
+     liveArtworks=state.rows;
+     const html=more.map((row,j)=>museumSnapCard(museumSnapPlacement(row,start+j,state.metrics),state.metrics)).join('');
+     state.canvas.insertAdjacentHTML('beforeend',html);
+     wireLiveExhibits(state.canvas);
+     state.loadedRing=nextRing;
+     if(more.length<need)state.hasMore=false;
+     preloadSnapNeighborhood(state);
+     return true;
+   }catch(err){
+     console.error('[OFH] next museum ring failed',err);
+     return false;
+   }finally{
+     state.loading=false;
+     state.loadingPromise=null;
+     state.viewport.classList.remove('is-ring-loading');
+   }
+ })();
+ return await state.loadingPromise;
 }
-function moveSnapGrid(state,dx,dy){
+async function moveSnapGrid(state,dx,dy){
  if(!state)return false;
  const nx=state.x+dx,ny=state.y+dy;
- const target=state.canvas.querySelector(`[data-grid-x="${nx}"][data-grid-y="${ny}"]`);
- if(!target){
-   ensureNextSnapRing(state);
-   return false;
+ let target=state.canvas.querySelector(`[data-grid-x="${nx}"][data-grid-y="${ny}"]`);
+ if(!target&&state.hasMore){
+   // User reached the loaded frontier: fetch unseen works, place the next
+   // ring around the existing museum, then complete this same swipe.
+   await ensureNextSnapRing(state,{force:true});
+   target=state.canvas.querySelector(`[data-grid-x="${nx}"][data-grid-y="${ny}"]`);
  }
+ if(!target)return false;
  state.x=nx;state.y=ny;
  centerSnapState(state);
+ // As soon as the user lands on the outer loaded ring, start preparing the
+ // next unseen ring in the background before their next swipe.
  ensureNextSnapRing(state);
  return true;
 }
@@ -414,7 +431,7 @@ function setupMuseumSnapGrid(rows){
  canvas.style.height='100%';
  canvas.innerHTML=rows.map((row,i)=>museumSnapCard(museumSnapPlacement(row,i,metrics),metrics)).join('');
  wireLiveExhibits(canvas);
- const state={viewport,canvas,rows:[...rows],metrics,x:0,y:0,loadedRing:1,hasMore:rows.length>=9,loading:false,pointerId:null,startX:0,startY:0,moved:false,suppressClick:false};
+ const state={viewport,canvas,rows:[...rows],metrics,x:0,y:0,loadedRing:1,hasMore:rows.length>=9,loading:false,loadingPromise:null,pointerId:null,startX:0,startY:0,moved:false,suppressClick:false};
  mobileSnapState=state;
  let resizeTimer=null;
  const refreshGeometry=()=>{
@@ -447,8 +464,8 @@ function setupMuseumSnapGrid(rows){
    if(Math.max(ax,ay)<34){state.moved=false;return}
    state.suppressClick=true;
    setTimeout(()=>{state.suppressClick=false},220);
-   if(ax>ay)moveSnapGrid(state,dx<0?1:-1,0);
-   else moveSnapGrid(state,0,dy<0?1:-1);
+   if(ax>ay){void moveSnapGrid(state,dx<0?1:-1,0)}
+   else{void moveSnapGrid(state,0,dy<0?1:-1)}
  };
  const cancel=()=>{state.pointerId=null;state.moved=false;viewport.classList.remove('is-swiping')};
  const clickCapture=e=>{
@@ -465,7 +482,7 @@ function setupMuseumSnapGrid(rows){
    if(e.target!==viewport)return;
    const dirs={ArrowLeft:[-1,0],ArrowRight:[1,0],ArrowUp:[0,-1],ArrowDown:[0,1]};
    if(!dirs[e.key])return;
-   e.preventDefault();moveSnapGrid(state,...dirs[e.key]);
+   e.preventDefault();void moveSnapGrid(state,...dirs[e.key]);
  };
  const resize=()=>{clearTimeout(resizeTimer);resizeTimer=setTimeout(refreshGeometry,100)};
  viewport.addEventListener('pointerdown',down);
