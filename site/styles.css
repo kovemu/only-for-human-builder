@@ -1845,3 +1845,43 @@ html,body{
     border-width:24px!important;
   }
 }
+
+
+/* OFH frame v5.1 — seam cleanup for aged-gold raster frame */
+.live-artifact.frame-asset-gold .live-imgbox img{
+  border-width:clamp(27px,2.6vw,40px)!important;
+  border-image-slice:70 70 88 70!important;
+  border-image-repeat:stretch round!important;
+  image-rendering:auto!important;
+  -webkit-backface-visibility:hidden!important;
+  backface-visibility:hidden!important;
+  transform:translateZ(0)!important;
+  clip-path:inset(0 0 1px 0)!important;
+}
+.exhibit-art-stage.frame-asset-gold .art-image{
+  border-width:36px!important;
+  border-image-slice:70 70 88 70!important;
+  border-image-repeat:stretch round!important;
+  image-rendering:auto!important;
+  -webkit-backface-visibility:hidden!important;
+  backface-visibility:hidden!important;
+  transform:translateZ(0)!important;
+  clip-path:inset(0 0 1px 0)!important;
+}
+@media(max-width:560px){
+  .mobile-feed .live-artifact.frame-asset-gold .art-image{
+    border-width:21px!important;
+    border-image-slice:70 70 88 70!important;
+    border-image-repeat:stretch round!important;
+    image-rendering:auto!important;
+    -webkit-backface-visibility:hidden!important;
+    backface-visibility:hidden!important;
+    transform:translateZ(0)!important;
+    clip-path:inset(0 0 1px 0)!important;
+  }
+  .exhibit-art-stage.frame-asset-gold .art-image{
+    border-width:23px!important;
+    border-image-slice:70 70 88 70!important;
+    border-image-repeat:stretch round!important;
+  }
+}
