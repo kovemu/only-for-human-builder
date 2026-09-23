@@ -144,10 +144,10 @@ async function leaveVisitorNote(i,body){
  st.visitorNotes[slug].push(row);saveStore(st);return row;
 }
 
-async function fetchLiveArtworks(limit=40){
+async function fetchLiveArtworks(limit=40,offset=0){
  if(!SUPABASE_READY)return [];
  try{
-   const q=`${SUPABASE_URL}/rest/v1/artworks?status=eq.published&image_bytes=not.is.null&select=id,slug,title,description,author_name,image_path,image_width,image_height,image_bytes,created_at,published_at&order=published_at.desc&limit=${limit}`;
+   const q=`${SUPABASE_URL}/rest/v1/artworks?status=eq.published&image_bytes=not.is.null&select=id,slug,title,description,author_name,image_path,image_width,image_height,image_bytes,created_at,published_at&order=published_at.desc&limit=${limit}&offset=${offset}`;
    const r=await fetch(q,{headers:dbHeaders()});
    if(!r.ok)return [];
    return await r.json();
@@ -309,6 +309,187 @@ function museumWallCard(p){
    ${museumCaptionHtml(row,title)}
  </a>`;
 }
+let mobileSnapState=null;
+function museumSnapMetrics(viewport){
+ const vw=Math.max(280,viewport?.clientWidth||innerWidth);
+ const vh=Math.max(300,viewport?.clientHeight||Math.round(innerHeight*.5));
+ return {
+   vw,vh,
+   cellW:Math.round(vw*.78),
+   cellH:Math.max(430,Math.round(vh*.92))
+ };
+}
+function museumSnapPlacement(row,index,metrics){
+ const cell=wallSpiralCell(index);
+ const spec=museumFrameSpec(row);
+ const ratio=spec?(spec.w/spec.h):Math.max(.55,Math.min(1.8,(Number(row.image_width)||1)/(Number(row.image_height)||1)));
+ const byWidth=Math.round(metrics.vw*.69);
+ const byHeight=Math.round(Math.max(170,(metrics.vh-105)*ratio));
+ const width=Math.max(178,Math.min(byWidth,byHeight,286));
+ return {row,index,cell,w:width};
+}
+function museumSnapCard(p,metrics){
+ const row=p.row,url=liveArtUrl(row),title=esc(row.title||'untitled human artifact'),slug=esc(row.slug);
+ const frameSpec=museumFrameSpec(row),frame=frameSpec?'frame-photo-library':frameVariant(row,p.index);
+ const art=frameSpec
+   ?museumPhotoFrameHtml(url,frameSpec,{width:row.image_width||'',height:row.image_height||'',loading:p.index<9?'eager':'lazy'})
+   :`<div class="wall-simple-frame live-imgbox"><img src="${url}" width="${row.image_width||''}" height="${row.image_height||''}" alt="" loading="${p.index<9?'eager':'lazy'}" decoding="async"></div>`;
+ const sx=p.cell.x*metrics.cellW,sy=p.cell.y*metrics.cellH;
+ return `<a href="/exhibit/${slug}" data-live-exhibit="${slug}" data-grid-x="${p.cell.x}" data-grid-y="${p.cell.y}" data-grid-index="${p.index}" class="wall-artwork snap-artwork live-artifact ${frame}" style="--sx:${sx}px;--sy:${sy}px;--ww:${p.w}px">
+   <div class="wall-art-inner">${art}</div>
+   ${museumCaptionHtml(row,title)}
+ </a>`;
+}
+function snapGridKey(x,y){return x+','+y}
+function snapRing(x,y){return Math.max(Math.abs(x),Math.abs(y))}
+function preloadSnapNeighborhood(state){
+ const wanted=[];
+ for(let dy=-1;dy<=1;dy++)for(let dx=-1;dx<=1;dx++){
+   const card=state.canvas.querySelector(`[data-grid-x="${state.x+dx}"][data-grid-y="${state.y+dy}"]`);
+   const img=card?.querySelector('.art-image, .wall-simple-frame img');
+   if(img?.src)wanted.push(img.src);
+ }
+ wanted.forEach(src=>{const img=new Image();img.decoding='async';img.src=src});
+}
+function updateSnapActive(state){
+ state.canvas.querySelectorAll('.snap-artwork.is-current').forEach(el=>el.classList.remove('is-current'));
+ const active=state.canvas.querySelector(`[data-grid-x="${state.x}"][data-grid-y="${state.y}"]`);
+ if(active)active.classList.add('is-current');
+}
+function centerSnapState(state,{instant=false}={}){
+ if(!state)return;
+ const x=-state.x*state.metrics.cellW,y=-state.y*state.metrics.cellH;
+ if(instant)state.canvas.classList.add('no-snap-transition');
+ state.canvas.style.transform=`translate3d(${x}px,${y}px,0)`;
+ updateSnapActive(state);
+ preloadSnapNeighborhood(state);
+ if(instant)requestAnimationFrame(()=>requestAnimationFrame(()=>state.canvas.classList.remove('no-snap-transition')));
+}
+async function ensureNextSnapRing(state){
+ if(!state||state.loading||!state.hasMore)return;
+ const currentRing=snapRing(state.x,state.y);
+ if(currentRing<state.loadedRing)return;
+ const nextRing=state.loadedRing+1;
+ const need=8*nextRing;
+ state.loading=true;
+ state.viewport.classList.add('is-ring-loading');
+ try{
+   const more=await fetchLiveArtworks(need,state.rows.length);
+   if(!more.length){state.hasMore=false;return}
+   const start=state.rows.length;
+   state.rows.push(...more);
+   liveArtworks=state.rows;
+   const html=more.map((row,j)=>museumSnapCard(museumSnapPlacement(row,start+j,state.metrics),state.metrics)).join('');
+   state.canvas.insertAdjacentHTML('beforeend',html);
+   wireLiveExhibits(state.canvas);
+   state.loadedRing=nextRing;
+   if(more.length<need)state.hasMore=false;
+   preloadSnapNeighborhood(state);
+ }catch(err){
+   console.error('[OFH] next museum ring failed',err);
+ }finally{
+   state.loading=false;
+   state.viewport.classList.remove('is-ring-loading');
+ }
+}
+function moveSnapGrid(state,dx,dy){
+ if(!state)return false;
+ const nx=state.x+dx,ny=state.y+dy;
+ const target=state.canvas.querySelector(`[data-grid-x="${nx}"][data-grid-y="${ny}"]`);
+ if(!target){
+   ensureNextSnapRing(state);
+   return false;
+ }
+ state.x=nx;state.y=ny;
+ centerSnapState(state);
+ ensureNextSnapRing(state);
+ return true;
+}
+function setupMuseumSnapGrid(rows){
+ const viewport=document.querySelector('#museumWallViewport'),canvas=document.querySelector('#museumWallCanvas');
+ if(!viewport||!canvas)return;
+ if(wallPanCleanup){wallPanCleanup();wallPanCleanup=null}
+ const metrics=museumSnapMetrics(viewport);
+ canvas.style.width='100%';
+ canvas.style.height='100%';
+ canvas.innerHTML=rows.map((row,i)=>museumSnapCard(museumSnapPlacement(row,i,metrics),metrics)).join('');
+ wireLiveExhibits(canvas);
+ const state={viewport,canvas,rows:[...rows],metrics,x:0,y:0,loadedRing:1,hasMore:rows.length>=9,loading:false,pointerId:null,startX:0,startY:0,moved:false,suppressClick:false};
+ mobileSnapState=state;
+ let resizeTimer=null;
+ const refreshGeometry=()=>{
+   state.metrics=museumSnapMetrics(viewport);
+   state.canvas.querySelectorAll('.snap-artwork').forEach(card=>{
+     const index=Number(card.dataset.gridIndex||0),row=state.rows[index];
+     if(!row)return;
+     const p=museumSnapPlacement(row,index,state.metrics);
+     card.style.setProperty('--sx',p.cell.x*state.metrics.cellW+'px');
+     card.style.setProperty('--sy',p.cell.y*state.metrics.cellH+'px');
+     card.style.setProperty('--ww',p.w+'px');
+   });
+   centerSnapState(state,{instant:true});
+ };
+ const down=e=>{
+   if(e.pointerType==='mouse'&&e.button!==0)return;
+   state.pointerId=e.pointerId;state.startX=e.clientX;state.startY=e.clientY;state.moved=false;
+   viewport.classList.add('is-swiping');
+ };
+ const move=e=>{
+   if(e.pointerId!==state.pointerId)return;
+   if(Math.hypot(e.clientX-state.startX,e.clientY-state.startY)>8)state.moved=true;
+ };
+ const up=e=>{
+   if(e.pointerId!==state.pointerId)return;
+   const dx=e.clientX-state.startX,dy=e.clientY-state.startY;
+   viewport.classList.remove('is-swiping');
+   state.pointerId=null;
+   const ax=Math.abs(dx),ay=Math.abs(dy);
+   if(Math.max(ax,ay)<34){state.moved=false;return}
+   state.suppressClick=true;
+   setTimeout(()=>{state.suppressClick=false},220);
+   if(ax>ay)moveSnapGrid(state,dx<0?1:-1,0);
+   else moveSnapGrid(state,0,dy<0?1:-1);
+ };
+ const cancel=()=>{state.pointerId=null;state.moved=false;viewport.classList.remove('is-swiping')};
+ const clickCapture=e=>{
+   if(state.suppressClick||state.moved){e.preventDefault();e.stopImmediatePropagation();state.moved=false;return}
+   const card=e.target.closest?.('.snap-artwork');
+   if(!card)return;
+   const gx=Number(card.dataset.gridX),gy=Number(card.dataset.gridY);
+   if(gx!==state.x||gy!==state.y){
+     e.preventDefault();e.stopImmediatePropagation();
+     state.x=gx;state.y=gy;centerSnapState(state);ensureNextSnapRing(state);
+   }
+ };
+ const key=e=>{
+   if(e.target!==viewport)return;
+   const dirs={ArrowLeft:[-1,0],ArrowRight:[1,0],ArrowUp:[0,-1],ArrowDown:[0,1]};
+   if(!dirs[e.key])return;
+   e.preventDefault();moveSnapGrid(state,...dirs[e.key]);
+ };
+ const resize=()=>{clearTimeout(resizeTimer);resizeTimer=setTimeout(refreshGeometry,100)};
+ viewport.addEventListener('pointerdown',down);
+ viewport.addEventListener('pointermove',move);
+ viewport.addEventListener('pointerup',up);
+ viewport.addEventListener('pointercancel',cancel);
+ viewport.addEventListener('click',clickCapture,true);
+ viewport.addEventListener('keydown',key);
+ window.addEventListener('resize',resize);
+ centerSnapState(state,{instant:true});
+ preloadSnapNeighborhood(state);
+ wallPanCleanup=()=>{
+   viewport.removeEventListener('pointerdown',down);
+   viewport.removeEventListener('pointermove',move);
+   viewport.removeEventListener('pointerup',up);
+   viewport.removeEventListener('pointercancel',cancel);
+   viewport.removeEventListener('click',clickCapture,true);
+   viewport.removeEventListener('keydown',key);
+   window.removeEventListener('resize',resize);
+   clearTimeout(resizeTimer);
+   if(mobileSnapState===state)mobileSnapState=null;
+ };
+}
+
 let wallPanCleanup=null;
 function setupMuseumWallPan(layout){
  const viewport=document.querySelector('#museumWallViewport'),canvas=document.querySelector('#museumWallCanvas');
@@ -397,17 +578,16 @@ function setupMuseumWallPan(layout){
  };
 }
 async function hydrateLiveFeed(){
+ const phone=matchMedia('(max-width:700px)').matches;
+ const desktop=document.querySelector('.desktop-gallery');
+ const viewport=document.querySelector('#museumWallViewport'),canvas=document.querySelector('#museumWallCanvas');
  let rows=[];
- try{rows=await fetchLiveArtworks()}catch(err){
+ try{rows=await fetchLiveArtworks(phone?9:40,0)}catch(err){
    console.error('[OFH] artwork feed load failed',err);
  }
  liveArtworks=rows;
  const frameAtlas=new Image();frameAtlas.decoding='async';frameAtlas.src=FRAME_LIBRARY_ATLAS.url;
- rows.slice(0,12).forEach(r=>{const img=new Image();img.decoding='async';img.src=liveArtUrl(r)});
-
- const phone=matchMedia('(max-width:700px)').matches;
- const desktop=document.querySelector('.desktop-gallery');
- const viewport=document.querySelector('#museumWallViewport'),canvas=document.querySelector('#museumWallCanvas');
+ rows.slice(0,phone?9:12).forEach(r=>{const img=new Image();img.decoding='async';img.src=liveArtUrl(r)});
 
  if(!rows.length){
    if(phone&&canvas)canvas.innerHTML=`<div class="museum-wall-empty">${lang()==='ko'?'아직 전시된 작품이 없습니다.':'the wall is empty. for now.'}</div>`;
@@ -425,12 +605,7 @@ async function hydrateLiveFeed(){
  }
 
  if(!viewport||!canvas)return;
- const layout=museumWallLayout(rows);
- canvas.style.width=layout.width+'px';
- canvas.style.height=layout.height+'px';
- canvas.innerHTML=layout.items.map(museumWallCard).join('');
- wireLiveExhibits(canvas);
- setupMuseumWallPan(layout);
+ setupMuseumSnapGrid(rows);
 }
 async function getLiveVisitorNotes(row){
  try{
@@ -593,7 +768,7 @@ function setupMobilePaging(){
  };
 }
 function home(){
- const l=lang(),t=copy[l],wallLabel=l==='ko'?'작품 벽을 자유롭게 둘러보기':'wander the museum wall',hint=l==='ko'?'드래그 / 스와이프 · 사방으로 이동':'DRAG / SWIPE · WANDER ANY DIRECTION';
+ const l=lang(),t=copy[l],wallLabel=l==='ko'?'상하좌우로 작품 넘기기':'swipe through the museum',hint=l==='ko'?'상하좌우 스와이프 · 한 작품씩 이동':'SWIPE ↑ ↓ ← → · ONE WORK AT A TIME';
  return frame(`<section class="home-intro">
    <section class="doom"><div class="doom-badge">${t.badge}</div><div class="side-pips"><i></i><i></i><i></i></div><div class="side-pips right"><i></i><i></i><i></i></div>${timerHtml()}<div class="doom-title">${t.title}</div><div class="glitch-rule"><i></i><i></i><i></i><i></i><i></i></div></section>
    <div class="cta-row"><div class="tagline">${t.tag}</div><button class="leave-btn" data-go="/upload">${t.leave}</button></div>

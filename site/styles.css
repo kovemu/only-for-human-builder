@@ -2793,3 +2793,71 @@ html,body{
   .wall-artwork .museum-caption-date{font-size:10.5px!important}
   .wall-artwork .museum-caption-author{font-size:10px!important}
 }
+
+
+/* OFH Museum Snap Grid v1 — mobile only.
+   Newest work starts in the center. Eight surrounding works are preloaded.
+   Each cardinal swipe advances exactly one grid cell and snaps it to center. */
+@media(max-width:700px){
+  .museum-wall-viewport{
+    cursor:default!important;
+    touch-action:none!important;
+    overscroll-behavior:none!important;
+  }
+  .museum-wall-canvas{
+    position:absolute!important;
+    inset:0!important;
+    width:100%!important;
+    height:100%!important;
+    contain:none!important;
+    overflow:visible!important;
+    will-change:transform!important;
+    transition:transform 420ms cubic-bezier(.22,.72,.2,1)!important;
+  }
+  .museum-wall-canvas.no-snap-transition{
+    transition:none!important;
+  }
+  .snap-artwork{
+    left:50%!important;
+    top:50%!important;
+    width:var(--ww)!important;
+    max-width:none!important;
+    transform:translate(calc(-50% + var(--sx)),calc(-50% + var(--sy)))!important;
+    transform-origin:center center!important;
+    z-index:2!important;
+    opacity:.82!important;
+    filter:saturate(.94) brightness(.985)!important;
+    transition:opacity .28s ease,filter .28s ease!important;
+  }
+  .snap-artwork.is-current{
+    z-index:8!important;
+    opacity:1!important;
+    filter:none!important;
+  }
+  .snap-artwork .museum-photo-frame{
+    width:100%!important;
+    max-width:none!important;
+    max-height:none!important;
+  }
+  .snap-artwork .museum-caption{
+    margin-top:9px!important;
+    min-width:184px!important;
+    max-width:218px!important;
+  }
+  .museum-wall-viewport.is-ring-loading::after{
+    content:'…'!important;
+    position:absolute!important;
+    right:12px!important;
+    top:10px!important;
+    z-index:50!important;
+    color:#8f7b58!important;
+    font-size:18px!important;
+    letter-spacing:.15em!important;
+  }
+  .museum-wall-hint{
+    right:8px!important;
+    bottom:7px!important;
+    font-size:7px!important;
+    opacity:.76!important;
+  }
+}
