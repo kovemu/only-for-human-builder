@@ -272,18 +272,18 @@ function wallSpiralCell(i){
 function museumWallLayout(rows){
  const phone=matchMedia('(max-width:560px)').matches;
  const tablet=!phone&&matchMedia('(max-width:900px)').matches;
- const cellW=phone?245:(tablet?330:410);
- const cellH=phone?330:(tablet?430:520);
- const pad=phone?105:(tablet?145:190);
+ const cellW=phone?Math.max(320,Math.round(innerWidth*.98)):(tablet?330:410);
+ const cellH=phone?455:(tablet?430:520);
+ const pad=phone?150:(tablet?145:190);
  const placed=rows.map((row,i)=>{
    const cell=wallSpiralCell(i);
    const h=frameHash(row,'wall-layout');
    const spec=museumFrameSpec(row);
    const ratio=spec?(spec.w/spec.h):Math.max(.55,Math.min(1.8,(Number(row.image_width)||1)/(Number(row.image_height)||1)));
-   const base=phone?175:(tablet?230:285);
-   const width=Math.round(base+((h>>>7)%5)*(phone?9:(tablet?13:17)));
+   const base=phone?Math.min(242,Math.round(innerWidth*.72)):(tablet?230:285);
+   const width=Math.round(base+((h>>>7)%4)*(phone?9:(tablet?13:17)));
    const outerH=Math.round(width/ratio+58);
-   const jx=((h>>>13)%61)-30,jy=((h>>>19)%51)-25;
+   const jx=phone?(((h>>>13)%31)-15):(((h>>>13)%61)-30),jy=phone?(((h>>>19)%31)-15):(((h>>>19)%51)-25);
    const x=cell.x*cellW+jx-width/2;
    const y=cell.y*cellH+jy-outerH/2;
    const rot=phone?0:[-1.2,-.7,0,0,.55,.9][(h>>>24)%6];
@@ -398,14 +398,29 @@ function setupMuseumWallPan(layout){
 async function hydrateLiveFeed(){
  const rows=await fetchLiveArtworks();
  liveArtworks=rows;
- const viewport=document.querySelector('#museumWallViewport'),canvas=document.querySelector('#museumWallCanvas');
- if(!viewport||!canvas)return;
- if(!rows.length){
-   canvas.innerHTML=`<div class="museum-wall-empty">${lang()==='ko'?'아직 전시된 작품이 없습니다.':'the wall is empty. for now.'}</div>`;
-   return;
- }
  const frameAtlas=new Image();frameAtlas.decoding='async';frameAtlas.src=FRAME_LIBRARY_ATLAS.url;
  rows.slice(0,12).forEach(r=>{const img=new Image();img.decoding='async';img.src=liveArtUrl(r)});
+
+ const phone=matchMedia('(max-width:560px)').matches;
+ const desktop=document.querySelector('.desktop-gallery');
+ const viewport=document.querySelector('#museumWallViewport'),canvas=document.querySelector('#museumWallCanvas');
+
+ if(!rows.length){
+   if(phone&&canvas)canvas.innerHTML=`<div class="museum-wall-empty">${lang()==='ko'?'아직 전시된 작품이 없습니다.':'the wall is empty. for now.'}</div>`;
+   if(!phone&&desktop)desktop.innerHTML=`<div class="museum-wall-empty">${lang()==='ko'?'아직 전시된 작품이 없습니다.':'the gallery is empty. for now.'}</div>`;
+   return;
+ }
+
+ if(!phone){
+   if(wallPanCleanup){wallPanCleanup();wallPanCleanup=null}
+   if(desktop){
+     desktop.innerHTML=`<div class="live-feed-grid">${rows.map((r,i)=>liveArtCard(r,{scatterIndex:i})).join('')}</div>`;
+     wireLiveExhibits(desktop);
+   }
+   return;
+ }
+
+ if(!viewport||!canvas)return;
  const layout=museumWallLayout(rows);
  canvas.style.width=layout.width+'px';
  canvas.style.height=layout.height+'px';
@@ -578,10 +593,11 @@ function home(){
  return frame(`<section class="home-intro">
    <section class="doom"><div class="doom-badge">${t.badge}</div><div class="side-pips"><i></i><i></i><i></i></div><div class="side-pips right"><i></i><i></i><i></i></div>${timerHtml()}<div class="doom-title">${t.title}</div><div class="glitch-rule"><i></i><i></i><i></i><i></i><i></i></div></section>
    <div class="cta-row"><div class="tagline">${t.tag}</div><button class="leave-btn" data-go="/upload">${t.leave}</button></div>
-   <div class="feed-head"><b>${t.feed}</b><span class="sort">[ ${wallLabel} ]</span></div>
+   <div class="feed-head"><b>${t.feed}</b><span class="sort desktop-home-sort">${t.sort}</span><span class="sort mobile-wall-sort">[ ${wallLabel} ]</span></div>
    <div class="feed-note">${t.feedNote}</div><div class="feed-rule"></div>
  </section>
- <section id="museumWallViewport" class="museum-wall-viewport" tabindex="0" aria-label="${wallLabel}">
+ <section class="gallery desktop-gallery"><div class="live-feed-grid"><div class="museum-wall-loading">loading human artifacts…</div></div></section>
+ <section id="museumWallViewport" class="museum-wall-viewport mobile-museum-wall" tabindex="0" aria-label="${wallLabel}">
    <div id="museumWallCanvas" class="museum-wall-canvas"><div class="museum-wall-loading">loading human artifacts…</div></div>
    <div class="museum-wall-hint" aria-hidden="true">${hint}</div>
  </section>`);

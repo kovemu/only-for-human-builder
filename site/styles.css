@@ -2672,3 +2672,69 @@ html,body{
   .wall-artwork .museum-caption-date{font-size:10px!important}
   .wall-artwork .museum-caption-author{font-size:9px!important}
 }
+
+
+/* OFH Gallery Wall v1.1 — mobile-only 2D wall; desktop rolled back to classic gallery */
+.desktop-home-sort{display:inline!important}
+.mobile-wall-sort{display:none!important}
+.mobile-museum-wall{display:none!important}
+
+@media(min-width:561px){
+  /* Neutralize the fullscreen wall page rules on desktop. */
+  .page:has(.museum-wall-viewport){
+    height:auto!important;
+    min-height:100vh!important;
+    max-height:none!important;
+    display:block!important;
+    overflow:visible!important;
+    padding-bottom:42px!important;
+  }
+  .page:has(.museum-wall-viewport)>.topbar,
+  .page:has(.museum-wall-viewport)>.rule,
+  .page:has(.museum-wall-viewport)>.systemline,
+  .page:has(.museum-wall-viewport)>.home-intro{
+    display:block!important;
+  }
+  .page:has(.museum-wall-viewport)>.museum-wall-viewport{
+    display:none!important;
+  }
+  .desktop-gallery{
+    display:block!important;
+    min-height:620px!important;
+  }
+  .desktop-home-sort{display:inline!important}
+  .mobile-wall-sort{display:none!important}
+}
+
+/* Phone only: larger framed works, more breathing room, no collisions. */
+@media(max-width:560px){
+  .desktop-gallery{display:none!important}
+  .desktop-home-sort{display:none!important}
+  .mobile-wall-sort{display:inline!important}
+  .mobile-museum-wall{
+    display:block!important;
+  }
+  .wall-artwork{
+    /* layout JS now allocates larger cells; keep plaques inside each cell */
+    max-width:76vw!important;
+  }
+  .wall-artwork .museum-caption{
+    margin-top:10px!important;
+    min-width:184px!important;
+    max-width:210px!important;
+    padding:10px 12px 9px!important;
+  }
+  .wall-artwork .museum-caption-main{
+    font-size:13px!important;
+    line-height:1.28!important;
+  }
+  .wall-artwork .museum-caption-date{
+    font-size:10.5px!important;
+  }
+  .wall-artwork .museum-caption-author{
+    font-size:10px!important;
+  }
+  .museum-wall-viewport{
+    min-height:300px!important;
+  }
+}
