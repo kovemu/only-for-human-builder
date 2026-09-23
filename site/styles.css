@@ -1158,77 +1158,34 @@ html,body{
 /* REAL ORNATE FRAME ASSET — fixed, selected portrait works only */
 @media(min-width:561px){
   .live-artifact.frame-asset-gold .live-imgbox{
-    position:relative!important;
-    width:100%!important;
-    aspect-ratio:4/5!important;
-    padding:0!important;
-    border:0!important;
-    background:transparent!important;
-    overflow:hidden!important;
+    position:relative!important;width:100%!important;aspect-ratio:4/5!important;
+    padding:0!important;border:0!important;background:transparent!important;overflow:hidden!important;
     box-shadow:0 12px 24px rgba(79,55,13,.16)!important;
   }
   .live-artifact.frame-asset-gold .live-imgbox::before{
-    content:"";
-    position:absolute;
-    inset:0;
-    z-index:4;
-    pointer-events:none;
+    content:"";position:absolute;inset:0;z-index:4;pointer-events:none;
     background:url("./assets/frame-gold-portrait.webp") center/100% 100% no-repeat!important;
   }
   .live-artifact.frame-asset-gold .live-imgbox::after{display:none!important}
   .live-artifact.frame-asset-gold .live-imgbox img{
-    position:absolute!important;
-    z-index:1;
-    left:21.57%!important;
-    top:17.55%!important;
-    width:56.95%!important;
-    height:63.20%!important;
-    max-width:none!important;
-    max-height:none!important;
-    margin:0!important;
-    padding:0!important;
-    border:0!important;
-    object-fit:contain!important;
-    background:#fff!important;
-    box-shadow:none!important;
+    position:absolute!important;z-index:1;
+    left:21.57%!important;top:17.55%!important;width:56.95%!important;height:63.20%!important;
+    max-width:none!important;max-height:none!important;margin:0!important;padding:0!important;border:0!important;
+    object-fit:contain!important;background:#fff!important;box-shadow:none!important;
   }
-  .live-artifact.frame-asset-gold .cap{
-    border-color:#c7ab6d!important;
-    background:#fbf3df!important;
-  }
-
+  .live-artifact.frame-asset-gold .cap{border-color:#c7ab6d!important;background:#fbf3df!important}
   .exhibit-art-stage.frame-asset-gold{
-    position:relative!important;
-    width:min(64vh,500px)!important;
-    height:auto!important;
-    aspect-ratio:4/5!important;
-    padding:0!important;
-    background:transparent!important;
-    box-shadow:none!important;
-    overflow:hidden!important;
+    position:relative!important;width:min(64vh,500px)!important;height:auto!important;aspect-ratio:4/5!important;
+    padding:0!important;background:transparent!important;box-shadow:none!important;overflow:hidden!important;
   }
   .exhibit-art-stage.frame-asset-gold::after{
-    content:"";
-    position:absolute;
-    inset:0;
-    z-index:4;
-    pointer-events:none;
+    content:"";position:absolute;inset:0;z-index:4;pointer-events:none;
     background:url("./assets/frame-gold-portrait.webp") center/100% 100% no-repeat!important;
   }
   .exhibit-art-stage.frame-asset-gold .art-image{
-    position:absolute!important;
-    z-index:1;
-    left:21.57%!important;
-    top:17.55%!important;
-    width:56.95%!important;
-    height:63.20%!important;
-    max-width:none!important;
-    max-height:none!important;
-    margin:0!important;
-    padding:0!important;
-    border:0!important;
-    object-fit:contain!important;
-    background:#fff!important;
-    box-shadow:none!important;
+    position:absolute!important;z-index:1;
+    left:21.57%!important;top:17.55%!important;width:56.95%!important;height:63.20%!important;
+    max-width:none!important;max-height:none!important;margin:0!important;padding:0!important;border:0!important;
+    object-fit:contain!important;background:#fff!important;box-shadow:none!important;
   }
 }
