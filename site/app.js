@@ -315,10 +315,10 @@ function museumSnapMetrics(viewport){
  const vh=Math.max(300,viewport?.clientHeight||Math.round(innerHeight*.5));
  return {
    vw,vh,
-   // Pull left/right neighbors further into view.
    cellW:Math.max(205,Math.round(vw*.68)),
-   // Keep the next row close enough that its frame edge is always visible.
-   cellH:Math.max(335,Math.round(vh*.70))
+   // Bring the upper/lower neighbors much closer. On a normal phone this is
+   // ~285-300px, so their frame edges remain visible around the current work.
+   cellH:Math.max(280,Math.min(305,Math.round(vh*.60)))
  };
 }
 function museumSnapPlacement(row,index,metrics,cellOverride=null){
@@ -326,10 +326,10 @@ function museumSnapPlacement(row,index,metrics,cellOverride=null){
  const spec=museumFrameSpec(row);
  const ratio=spec?(spec.w/spec.h):Math.max(.55,Math.min(1.8,(Number(row.image_width)||1)/(Number(row.image_height)||1)));
  const byWidth=Math.round(metrics.vw*.72);
- // Reserve room for the three-line plaque so vertical neighbors never cover each other.
- const frameHeightBudget=Math.max(215,metrics.cellH-72);
+ // Fit frame + plaque inside a grid step so vertical cards never collide.
+ const frameHeightBudget=Math.max(205,metrics.cellH-72);
  const byCell=Math.round(frameHeightBudget*ratio);
- const width=Math.max(168,Math.min(byWidth,byCell,248));
+ const width=Math.max(156,Math.min(byWidth,byCell,244));
  return {row,index,cell,w:width};
 }
 function museumSnapCard(p,metrics){
@@ -345,7 +345,6 @@ function museumSnapCard(p,metrics){
  </a>`;
 }
 function snapGridKey(x,y){return x+','+y}
-function snapRing(x,y){return Math.max(Math.abs(x),Math.abs(y))}
 function preloadSnapNeighborhood(state){
  const wanted=[];
  for(let dy=-1;dy<=1;dy++)for(let dx=-1;dx<=1;dx++){
@@ -369,49 +368,65 @@ function centerSnapState(state,{instant=false}={}){
  preloadSnapNeighborhood(state);
  if(instant)requestAnimationFrame(()=>requestAnimationFrame(()=>state.canvas.classList.remove('no-snap-transition')));
 }
-function snapCoordExists(state,x,y){
- return Boolean(state.canvas.querySelector(`[data-grid-x="${x}"][data-grid-y="${y}"]`));
+function snapCardAt(state,x,y){
+ return state.canvas.querySelector(`[data-grid-x="${x}"][data-grid-y="${y}"]`);
 }
-function snapNeighborCoords(x,y){
- // Cardinal neighbors first, then corners. This makes directional swipes ready first.
- return [
-   {x,y:y-1},{x:x+1,y},{x,y:y+1},{x:x-1,y},
-   {x:x+1,y:y-1},{x:x+1,y:y+1},{x:x-1,y:y+1},{x:x-1,y:y-1}
- ];
+function snapRecyclePlan(state,dx,dy){
+ const x=state.x,y=state.y;
+ if(dx===1)return {
+   old:[{x:x-2,y:y-1},{x:x-2,y},{x:x-2,y:y+1}],
+   next:[{x:x+1,y:y-1},{x:x+1,y},{x:x+1,y:y+1}]
+ };
+ if(dx===-1)return {
+   old:[{x:x+2,y:y-1},{x:x+2,y},{x:x+2,y:y+1}],
+   next:[{x:x-1,y:y-1},{x:x-1,y},{x:x-1,y:y+1}]
+ };
+ if(dy===1)return {
+   old:[{x:x-1,y:y-2},{x,y:y-2},{x:x+1,y:y-2}],
+   next:[{x:x-1,y:y+1},{x,y:y+1},{x:x+1,y:y+1}]
+ };
+ return {
+   old:[{x:x-1,y:y+2},{x,y:y+2},{x:x+1,y:y+2}],
+   next:[{x:x-1,y:y-1},{x,y:y-1},{x:x+1,y:y-1}]
+ };
 }
-async function ensureSnapCoordinates(state,coords){
+async function recycleFarthestSnapCards(state,dx,dy){
  if(!state||!state.hasMore)return 0;
  if(state.loadingPromise){
    try{await state.loadingPromise}catch{}
  }
- const wanted=[];
- const seen=new Set();
- for(const c of coords){
-   const key=snapGridKey(c.x,c.y);
-   if(seen.has(key)||snapCoordExists(state,c.x,c.y))continue;
-   seen.add(key);wanted.push(c);
- }
- if(!wanted.length||!state.hasMore)return 0;
+ const plan=snapRecyclePlan(state,dx,dy);
+ const oldCards=plan.old.map(c=>snapCardAt(state,c.x,c.y)).filter(Boolean);
+ if(!oldCards.length)return 0;
 
  state.loading=true;
  state.viewport.classList.add('is-ring-loading');
  state.loadingPromise=(async()=>{
    try{
-     const more=await fetchLiveArtworks(wanted.length,state.rows.length);
+     // Only three unseen works per swipe. This keeps the DOM fixed at ~9 cards
+     // and reuses the row/column that just moved furthest away from the viewer.
+     const more=await fetchLiveArtworks(oldCards.length,state.nextOffset);
      if(!more.length){state.hasMore=false;return 0}
      const startIndex=state.rows.length;
-     const html=more.map((row,j)=>{
-       const index=startIndex+j;
-       return museumSnapCard(museumSnapPlacement(row,index,state.metrics,wanted[j]),state.metrics);
-     }).join('');
+     state.nextOffset+=more.length;
      state.rows.push(...more);
      liveArtworks=state.rows;
-     state.canvas.insertAdjacentHTML('beforeend',html);
-     if(more.length<wanted.length)state.hasMore=false;
+
+     oldCards.forEach((card,j)=>{
+       card.remove();
+       const row=more[j];
+       if(!row)return;
+       const index=startIndex+j;
+       const pos=plan.next[j];
+       const html=museumSnapCard(museumSnapPlacement(row,index,state.metrics,pos),state.metrics);
+       state.canvas.insertAdjacentHTML('beforeend',html);
+     });
+     wireLiveExhibits(state.canvas);
+     if(more.length<oldCards.length)state.hasMore=false;
      preloadSnapNeighborhood(state);
      return more.length;
    }catch(err){
-     console.error('[OFH] museum neighborhood load failed',err);
+     console.error('[OFH] recycle unseen works failed',err);
      return 0;
    }finally{
      state.loading=false;
@@ -421,28 +436,24 @@ async function ensureSnapCoordinates(state,coords){
  })();
  return await state.loadingPromise;
 }
-function ensureSnapNeighborhood(state){
- if(!state)return Promise.resolve(0);
- return ensureSnapCoordinates(state,snapNeighborCoords(state.x,state.y));
-}
 async function moveSnapGrid(state,dx,dy){
- if(!state)return false;
+ if(!state||state.moving)return false;
  const nx=state.x+dx,ny=state.y+dy;
- let target=state.canvas.querySelector(`[data-grid-x="${nx}"][data-grid-y="${ny}"]`);
-
- if(!target&&state.hasMore){
-   // A fast swipe can reach an unloaded edge. Fetch that exact unseen work first.
-   await ensureSnapCoordinates(state,[{x:nx,y:ny}]);
-   target=state.canvas.querySelector(`[data-grid-x="${nx}"][data-grid-y="${ny}"]`);
- }
+ const target=snapCardAt(state,nx,ny);
  if(!target)return false;
 
+ state.moving=true;
  state.x=nx;state.y=ny;
  centerSnapState(state);
 
- // After every landing, fill only the missing cells around the new center.
- // Usually this is just 3 unseen works, not another whole ring.
- void ensureSnapNeighborhood(state);
+ // While the snap animation is running, fetch three unseen works and move the
+ // now-farthest row/column to the newly exposed side of the current exhibit.
+ const recyclePromise=recycleFarthestSnapCards(state,dx,dy);
+ await Promise.all([
+   recyclePromise,
+   new Promise(resolve=>setTimeout(resolve,360))
+ ]);
+ state.moving=false;
  return true;
 }
 function setupMuseumSnapGrid(rows){
@@ -454,7 +465,12 @@ function setupMuseumSnapGrid(rows){
  canvas.style.height='100%';
  canvas.innerHTML=rows.map((row,i)=>museumSnapCard(museumSnapPlacement(row,i,metrics),metrics)).join('');
  wireLiveExhibits(canvas);
- const state={viewport,canvas,rows:[...rows],metrics,x:0,y:0,hasMore:rows.length>=9,loading:false,loadingPromise:null,pointerId:null,startX:0,startY:0,moved:false,suppressClick:false};
+ const state={
+   viewport,canvas,rows:[...rows],metrics,x:0,y:0,
+   nextOffset:rows.length,hasMore:rows.length>=9,
+   loading:false,loadingPromise:null,moving:false,
+   pointerId:null,startX:0,startY:0,moved:false,suppressClick:false
+ };
  mobileSnapState=state;
  let resizeTimer=null;
  const refreshGeometry=()=>{
@@ -472,6 +488,7 @@ function setupMuseumSnapGrid(rows){
  };
  const down=e=>{
    if(e.pointerType==='mouse'&&e.button!==0)return;
+   if(state.moving)return;
    state.pointerId=e.pointerId;state.startX=e.clientX;state.startY=e.clientY;state.moved=false;
    viewport.classList.add('is-swiping');
  };
@@ -499,7 +516,10 @@ function setupMuseumSnapGrid(rows){
    const gx=Number(card.dataset.gridX),gy=Number(card.dataset.gridY);
    if(gx!==state.x||gy!==state.y){
      e.preventDefault();e.stopImmediatePropagation();
-     state.x=gx;state.y=gy;centerSnapState(state);void ensureSnapNeighborhood(state);
+     const dx=Math.sign(gx-state.x),dy=Math.sign(gy-state.y);
+     // Tap side/top/bottom peeks behaves exactly like a one-cell swipe.
+     if(Math.abs(gx-state.x)>=Math.abs(gy-state.y))void moveSnapGrid(state,dx,0);
+     else void moveSnapGrid(state,0,dy);
    }
  };
  const key=e=>{
@@ -518,7 +538,6 @@ function setupMuseumSnapGrid(rows){
  window.addEventListener('resize',resize);
  centerSnapState(state,{instant:true});
  preloadSnapNeighborhood(state);
- if(rows.length<9&&state.hasMore)void ensureSnapNeighborhood(state);
  wallPanCleanup=()=>{
    viewport.removeEventListener('pointerdown',down);
    viewport.removeEventListener('pointermove',move);

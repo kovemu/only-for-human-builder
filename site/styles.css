@@ -2906,3 +2906,25 @@ html,body{
     content:'loading unseen works…'!important;
   }
 }
+
+
+/* OFH Museum Snap Grid v1.3 — fixed 3x3 virtual window.
+   The top/bottom cards intentionally peek into the viewport; far cards are recycled. */
+@media(max-width:700px){
+  .snap-artwork{
+    opacity:.9!important;
+  }
+  .snap-artwork.is-current{
+    opacity:1!important;
+  }
+  .museum-wall-viewport.is-ring-loading::after{
+    content:'loading unseen works…'!important;
+    right:10px!important;
+    top:8px!important;
+    font-size:7px!important;
+    letter-spacing:.06em!important;
+    padding:4px 6px!important;
+    background:rgba(249,246,239,.9)!important;
+    border:1px solid #d8cfbf!important;
+  }
+}
